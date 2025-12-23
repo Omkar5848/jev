@@ -15,6 +15,10 @@ type Props = {
 };
 
 export default function OverviewSection({ stats, onNavigateTab }: Props) {
+  // --- SAFETY CHECK (Prevents Build Crash) ---
+  if (!stats) return null;
+  // -------------------------------------------
+
   return (
     <div className={styles.overviewSection}>
       <div className={styles.pageHeader}>
@@ -24,19 +28,18 @@ export default function OverviewSection({ stats, onNavigateTab }: Props) {
 
       <div className={styles.statsGrid}>
         <button
-              type="button"
-              className={styles.statCard}
-              onClick={() => onNavigateTab?.('hospitals')}
-              aria-label="Go to Hospitals"
+          type="button"
+          className={styles.statCard}
+          onClick={() => onNavigateTab?.('hospitals')}
+          aria-label="Go to Hospitals"
         >
           <div className={styles.statHeader}>
-            <div className={`${styles.statIcon} ${styles.blue}`}>🏥</div>
-            
+            <div className={`${styles.statIcon} ${styles.blue}`}>🏥</div>;
           </div>
           <div className={styles.statValue}>{stats.totalHospitals}</div>
           <div className={styles.statLabel}>Total Hospitals</div>
         </button>
-        
+
         <button
           type="button"
           className={styles.statCard}
@@ -44,8 +47,7 @@ export default function OverviewSection({ stats, onNavigateTab }: Props) {
           aria-label="Go to Doctors"
         >
           <div className={styles.statHeader}>
-            <div className={`${styles.statIcon} ${styles.purple}`}>🧑‍⚕️</div>
-            
+            <div className={`${styles.statIcon} ${styles.purple}`}>🧑‍⚕️</div>;
           </div>
           <div className={styles.statValue}>{stats.totalDoctors}</div>
           <div className={styles.statLabel}>Total Doctors</div>
@@ -58,8 +60,7 @@ export default function OverviewSection({ stats, onNavigateTab }: Props) {
           aria-label="Go to Demands"
         >
           <div className={styles.statHeader}>
-            <div className={`${styles.statIcon} ${styles.orange}`}>📋</div>
-            
+            <div className={`${styles.statIcon} ${styles.orange}`}>📋</div>;
           </div>
           <div className={styles.statValue}>{stats.openDemands}</div>
           <div className={styles.statLabel}>Open Demands</div>
@@ -67,4 +68,4 @@ export default function OverviewSection({ stats, onNavigateTab }: Props) {
       </div>
     </div>
   );
-}
+};
