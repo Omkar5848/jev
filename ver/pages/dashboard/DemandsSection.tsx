@@ -259,7 +259,8 @@ export default function DemandsSection(props: Props) {
       )}
 
       <div className={styles.entityGrid}>
-        {filtered.map((d) => (
+        {/* --- FIX IS HERE: ADDED (filtered || []) --- */}
+        {(filtered || []).map((d) => (
           <div key={String(d.id)} className={styles.entityCard}>
             <div className={styles.cardHeader}>
               <div className={styles.entityInfo}>
@@ -302,4 +303,4 @@ export default function DemandsSection(props: Props) {
       </div>
     </div>
   );
-}
+};
