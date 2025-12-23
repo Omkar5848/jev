@@ -1,7 +1,8 @@
 // components/dashboard/DemandsSection.tsx
 import { useEffect, useRef, useState } from "react";
 import styles from "@/styles/Temp.module.css";
-import { Demand } from "../../hooks/useDemands";
+// ✅ FIX: Use absolute import to prevent path errors
+import { Demand } from "@/hooks/useDemands";
 import { FaPlus, FaTimes, FaEdit, FaTrash, FaClock, FaMoneyBillWave, FaUserMd, FaHospital } from "react-icons/fa";
 
 const formatCurrencyCompact = (n?: number) => {
@@ -25,6 +26,10 @@ type Props = {
 
 export default function DemandsSection(props: Props) {
   const { filtered, form, editingId, saving, onChange, onSubmit, onEdit, onDelete } = props;
+
+  // --- SAFETY CHECK (Prevents Build Crash) ---
+  if (!form) return null;
+  // -------------------------------------------
 
   const [showForm, setShowForm] = useState(false);
   const firstFieldRef = useRef<HTMLInputElement | null>(null);
@@ -256,10 +261,9 @@ export default function DemandsSection(props: Props) {
             </div>
           </div>
         </div>
-      )}
+      )},
 
       <div className={styles.entityGrid}>
-        {/* --- FIX IS HERE: ADDED (filtered || []) --- */}
         {(filtered || []).map((d) => (
           <div key={String(d.id)} className={styles.entityCard}>
             <div className={styles.cardHeader}>
@@ -303,4 +307,4 @@ export default function DemandsSection(props: Props) {
       </div>
     </div>
   );
-};
+}

@@ -1,3 +1,4 @@
+// components/dashboard/HospitalsSection.tsx
 import { useEffect, useRef, useState } from "react";
 import { FaPlus, FaTimes } from "react-icons/fa";
 import styles from "@/styles/Temp.module.css";
@@ -17,6 +18,11 @@ type Props = {
 
 export default function HospitalsSection(props: Props) {
   const { filtered, form, editingId, saving, loading, onChange, onSubmit, onEdit, onDelete } = props;
+
+  // --- SAFETY CHECK (Prevents Build Crash) ---
+  if (!form) return null;
+  // -------------------------------------------
+
   const [showForm, setShowForm] = useState(false);
   const firstFieldRef = useRef<HTMLInputElement | null>(null);
 
@@ -67,7 +73,7 @@ export default function HospitalsSection(props: Props) {
                     ref={firstFieldRef}
                     className={styles.formInput}
                     name="name"
-                    value={form.name}
+                    value={form.name || ""}
                     onChange={onChange}
                     placeholder="Name"
                     required
@@ -217,4 +223,4 @@ export default function HospitalsSection(props: Props) {
       )}
     </div>
   );
-}
+};

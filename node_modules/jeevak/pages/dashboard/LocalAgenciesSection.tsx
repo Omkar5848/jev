@@ -3,13 +3,14 @@
 
 import { useEffect, useRef, useState } from "react";
 import styles from "@/styles/Temp.module.css";
+// ✅ FIX: Use absolute import for hooks to prevent path errors
 import {
   useLocalAgencies,
   createAgency,
   updateAgency,
   deleteAgency,
   LocalAgency,
-} from "../../hooks/useLocalAgencies";
+} from "@/hooks/useLocalAgencies";
 import { FaPlus, FaTimes } from "react-icons/fa";
 
 type AgencyForm = {
@@ -65,7 +66,8 @@ export default function LocalAgenciesSection() {
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (editingId) {
+    // ✅ FIX: Strict check for null (fixes bug where ID 0 wouldn't update)
+    if (editingId !== null) {
       await updateAgency(editingId, form);
     } else {
       await createAgency(form);
@@ -89,6 +91,7 @@ export default function LocalAgenciesSection() {
     await deleteAgency(id as any);
   };
 
+  // ✅ SAFE CHECK: Ensures map doesn't crash if hook returns undefined
   const safeAgencies = Array.isArray(agencies) ? agencies : [];
 
   return (
@@ -129,7 +132,7 @@ export default function LocalAgenciesSection() {
                 <FaTimes />
               </button>
               <h2 id="agency-modal-title">
-                {editingId ? "Edit Agency" : "Add Agency"}
+                {editingId !== null ? "Edit Agency" : "Add Agency"}
               </h2>
             </div>
 
@@ -200,7 +203,7 @@ export default function LocalAgenciesSection() {
                 form="agency-form"
                 type="submit"
               >
-                {editingId ? "Update" : "Create"}
+                {editingId !== null ? "Update" : "Create"}
               </button>
               <button className={styles.cancelBtn} type="button" onClick={closeForm}>
                 Cancel
@@ -210,7 +213,7 @@ export default function LocalAgenciesSection() {
         </div>
       )}
 
-      {/* Table (kept as your list view) */}
+      {/* Table */}
       <div className={styles.agencyTableWrap}>
         <table className={styles.agencyTable}>
           <thead>
@@ -242,7 +245,7 @@ export default function LocalAgenciesSection() {
                   <td>{a.phone || "-"}</td>
                   <td>{a.contactPerson || "-"}</td>
                   <td>
-                   <div className={styles.actionsRow}>
+                    <div className={styles.actionsRow}>
                       <button
                         type="button"
                         onClick={() => onEdit(a)}
@@ -274,4 +277,4 @@ export default function LocalAgenciesSection() {
       </div>
     </div>
   );
-}
+};

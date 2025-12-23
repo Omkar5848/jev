@@ -1,5 +1,6 @@
+// components/dashboard/DoctorsSection.tsx
 import { useEffect, useRef, useState } from "react";
-import styles from "../../styles/Temp.module.css";
+import styles from "@/styles/Temp.module.css";
 import { Doctor } from "../../hooks/useDoctors";
 import { FaPlus, FaTimes, FaEdit, FaTrash, FaPhone, FaEnvelope, FaUserMd, FaHospital } from "react-icons/fa";
 
@@ -19,6 +20,10 @@ type Props = {
 export default function DoctorsSection(props: Props) {
   const { filtered, form, editingId, saving, onChange, onSubmit, onEdit, onDelete, setEditingId } = props;
 
+  // --- SAFETY CHECK (Prevents Build Crash) ---
+  if (!form) return null;
+  // -------------------------------------------
+
   const [showForm, setShowForm] = useState(false);
   const firstFieldRef = useRef<HTMLInputElement | null>(null);
 
@@ -31,23 +36,22 @@ export default function DoctorsSection(props: Props) {
   // Open modal when editing
   useEffect(() => {
     if (editingId !== undefined) setShowForm(true);
-  }, [editingId]); // [attached_file:3]
+  }, [editingId]);
 
   // Autofocus first field
   useEffect(() => {
     if (showForm && firstFieldRef.current) firstFieldRef.current.focus();
-  }, [showForm]); // [attached_file:3]
+  }, [showForm]);
 
-  // Scroll to first invalid field on submit attempt (optional enhancement)
+  // Scroll to first invalid field on submit attempt
   const handleSubmit = (e: any) => {
     onSubmit(e);
     const formEl = (e.target as HTMLFormElement) ?? document.getElementById("doctor-form");
-    if (formEl && !formEl.checkValidity) return;
-    if (formEl && !formEl.checkValidity()) {
+    if (formEl && (formEl as any).checkValidity && !(formEl as any).checkValidity()) {
       const invalid = formEl.querySelector<HTMLElement>(":invalid");
       invalid?.scrollIntoView({ behavior: "smooth", block: "center" });
     }
-  }; // [attached_file:3]
+  };
 
   return (
     <div className={styles.hospitalsSection}>
@@ -97,7 +101,7 @@ export default function DoctorsSection(props: Props) {
                   <input
                     className={styles.formInput}
                     name="firstName"
-                    value={form.firstName}
+                    value={form.firstName || ""}
                     onChange={onChange}
                     placeholder="First name"
                     required
@@ -105,7 +109,7 @@ export default function DoctorsSection(props: Props) {
                   <input
                     className={styles.formInput}
                     name="lastName"
-                    value={form.lastName}
+                    value={form.lastName || ""}
                     onChange={onChange}
                     placeholder="Last name"
                     required
@@ -388,4 +392,4 @@ export default function DoctorsSection(props: Props) {
       </div>
     </div>
   );
-}
+};

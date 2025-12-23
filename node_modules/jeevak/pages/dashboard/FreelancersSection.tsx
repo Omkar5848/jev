@@ -16,6 +16,10 @@ type Props = {
 export default function FreelancersSection(props: Props) {
   const { filtered, form, editingId, saving, onChange, onSubmit, onEdit, onDelete } = props;
 
+  // --- SAFETY CHECK (Prevents Build Crash) ---
+  if (!form) return null;
+  // -------------------------------------------
+
   return (
     <div className={styles.hospitalsSection}>
       <div className={styles.sectionHeader}>
@@ -28,7 +32,7 @@ export default function FreelancersSection(props: Props) {
       <div className={styles.entityCard} style={{ marginBottom: '1rem' }}>
         <form onSubmit={onSubmit} className={styles.entityForm}>
           <div className={styles.formRow}>
-            <input className={styles.input} name="name" value={form.name} onChange={onChange} placeholder="Full name" required />
+            <input className={styles.input} name="name" value={form.name || ''} onChange={onChange} placeholder="Full name" required />
             <input className={styles.input} name="specialization" value={form.specialization || ''} onChange={onChange} placeholder="Specialization" />
             <select className={styles.input} name="availability" value={form.availability || 'available'} onChange={onChange}>
               <option value="available">available</option>
@@ -107,4 +111,4 @@ export default function FreelancersSection(props: Props) {
       </div>
     </div>
   );
-}
+};

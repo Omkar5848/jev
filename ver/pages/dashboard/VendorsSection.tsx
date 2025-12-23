@@ -1,6 +1,7 @@
 // components/dashboard/VendorsSection.tsx
 import styles from '@/styles/Temp.module.css';
-import { Vendor } from '../../hooks/useVendors';
+// ✅ FIX: Use absolute import to prevent path errors
+import { Vendor } from '@/hooks/useVendors';
 
 type Props = {
   filtered: Vendor[];
@@ -16,6 +17,10 @@ type Props = {
 export default function VendorsSection(props: Props) {
   const { filtered, form, editingId, saving, onChange, onSubmit, onEdit, onDelete } = props;
 
+  // --- SAFETY CHECK (Prevents Build Crash) ---
+  if (!form) return null;
+  // -------------------------------------------
+
   return (
     <div className={styles.hospitalsSection}>
       <div className={styles.sectionHeader}>
@@ -28,7 +33,7 @@ export default function VendorsSection(props: Props) {
       <div className={styles.entityCard} style={{ marginBottom: '1rem' }}>
         <form onSubmit={onSubmit} className={styles.entityForm}>
           <div className={styles.formRow}>
-            <input className={styles.input} name="name" value={form.name} onChange={onChange} placeholder="Vendor name" required />
+            <input className={styles.input} name="name" value={form.name || ''} onChange={onChange} placeholder="Vendor name" required />
             <input className={styles.input} name="contactPerson" value={form.contactPerson || ''} onChange={onChange} placeholder="Contact person" />
             <input className={styles.input} name="category" value={form.category || ''} onChange={onChange} placeholder="Category" />
             <select className={styles.input} name="status" value={form.status || 'active'} onChange={onChange}>
@@ -98,4 +103,4 @@ export default function VendorsSection(props: Props) {
       </div>
     </div>
   );
-}
+};
