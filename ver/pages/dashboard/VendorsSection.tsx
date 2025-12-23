@@ -60,7 +60,7 @@ export default function VendorsSection(props: Props) {
       </div>
 
       <div className={styles.entityGrid}>
-        {filtered.map((v) => (
+        {(filtered || []).map((v) => (
           <div key={v.id} className={styles.entityCard}>
             <div className={styles.cardHeader}>
               <div className={styles.entityInfo}>

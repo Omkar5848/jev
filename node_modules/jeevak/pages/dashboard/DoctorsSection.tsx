@@ -349,7 +349,7 @@ export default function DoctorsSection(props: Props) {
       )}
 
       <div className={styles.entityGrid}>
-        {filtered.map((d) => (
+        {(filtered || []).map((d) => (
           <div key={String(d.id)} className={styles.entityCard}>
             <div className={styles.cardHeader}>
               <div className={styles.entityInfo}>

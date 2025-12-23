@@ -124,7 +124,7 @@ export default function HospitalsSection(props: Props) {
 
       {/* Cards grid */}
       <div className={styles.entityGrid}>
-        {filtered.map((it) => (
+        {(filtered || []).map((it) => (
           <div key={String(it.id)} className={styles.glassCard}>
             <div className={styles.cardTopRow}>
               <div className={styles.avatarBlock}>

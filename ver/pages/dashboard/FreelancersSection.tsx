@@ -61,7 +61,7 @@ export default function FreelancersSection(props: Props) {
       </div>
 
       <div className={styles.entityGrid}>
-        {filtered.map((f) => (
+        {(filtered || []).map((f) => (
           <div key={f.id} className={styles.entityCard}>
             <div className={styles.cardHeader}>
               <div className={styles.entityInfo}>
