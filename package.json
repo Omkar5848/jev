@@ -1,0 +1,24 @@
+{
+  "dependencies": {
+    "next-seo": "^7.0.1",
+    "react": "18.2.0",
+    "react-calendar": "^6.0.0",
+    "react-dom": "18.2.0"
+  },
+  "name": "jeevak-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "back",
+    "ver"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev:back\" \"npm run dev:ver\"",
+    "dev:back": "npm run dev --workspace=back",
+    "dev:ver": "npm run dev --workspace=ver",
+    "install:all": "npm install"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "users": [
+    {
+      "id": "e3d8f8d8-ae73-41db-acd4-8847895ef0e2",
+      "name": "omkar",
+      "email": "omkarjore066@gmail.com",
+      "passwordHash": "$2a$10$FTM3bpbzCQNJYqJv2yvM2eJSPjSadXAxcaOda5dAA5br7P/mavwAm",
+      "profession": "technician"
+    },
+    {
+      "id": "c0962886-a618-40fc-bb1d-db66eaa8541b",
+      "name": "OM",
+      "email": "omkarjore099@gmail.com",
+      "passwordHash": "$2a$10$Hlkd1onaTKJp5CnCpR3FFu58Scy/IM9mxJk1.MRJuwyugvCuaDmrq",
+      "profession": "technician"
+    }
+  ]
+}

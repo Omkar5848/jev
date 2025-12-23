@@ -1,0 +1,170 @@
+.container { display:flex; align-items:center; justify-content:center; min-height:100vh; background:#f5f5f7; }
+.card { background:#fff; width:360px; padding:24px; border-radius:20px; box-shadow:0 10px 30px rgba(0,0,0,.1); }
+.logo { text-align:center; font-weight:700; font-size:40px; margin:0 0 8px; }
+.input { width:100%; padding:12px 14px; border:1px solid #ddd; border-radius:12px; outline:none; background:#fafafa; margin:8px 0; }
+.button { width:100%; padding:12px 14px; border-radius:12px; border:none; background:#000; color:#fff; font-weight:600; cursor:pointer; margin-top:10px; }
+.linkRow { display:flex; justify-content:space-between; margin-top:10px; font-size:14px; }
+.backHome { display:block; margin-top:10px; text-align:center; color:#0070f3; }
+
+
+
+/* ver/styles/Auth.module.css */
+
+.container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  /* IMPORTANT: Use the variable, not a hardcoded hex code */
+  background: var(--color-background); 
+  padding: 1rem;
+  transition: background-color 0.3s ease;
+}
+
+.card {
+ /* IMPORTANT: Use surface color */
+  background: var(--color-surface); 
+  width: 100%;
+  max-width: 400px;
+  padding: 2.5rem;
+  border-radius: 1.5rem;
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--color-card-border);
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  position: relative;
+  overflow: hidden;
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+/* Add a subtle top border line for pop */
+.card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--color-primary), var(--color-primary-active));
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 0.5rem;
+}
+
+.logo {
+  font-weight: 900;
+  font-size: 2rem;
+  color: var(--color-text);
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+.subtitle {
+  color: var(--color-text-secondary);
+  font-size: 0.95rem;
+  margin-top: 0.5rem;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.inputGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  margin-left: 0.2rem;
+}
+
+.input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.75rem;
+  background: var(--color-background);
+  color: var(--color-text);
+  font-size: 1rem;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.input:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-focus-ring);
+}
+
+.button {
+  width: 100%;
+  padding: 0.85rem;
+  border-radius: 0.75rem;
+  border: none;
+  background: var(--color-primary);
+  color: var(--color-btn-primary-text);
+  font-weight: 700;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.1s ease;
+  margin-top: 0.5rem;
+}
+
+.button:hover {
+  background: var(--color-primary-hover);
+}
+
+.button:active {
+  transform: translateY(1px);
+}
+
+.button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.error {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--color-error);
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  font-size: 0.9rem;
+  text-align: center;
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.linkRow {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.9rem;
+  margin-top: 0.5rem;
+}
+
+.link {
+  color: var(--color-primary);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.link:hover {
+  text-decoration: underline;
+}
+
+.backHome {
+  display: block;
+  text-align: center;
+  color: var(--color-text-secondary);
+  font-size: 0.9rem;
+  text-decoration: none;
+  margin-top: 1rem;
+}
+
+.backHome:hover {
+  color: var(--color-text);
+}

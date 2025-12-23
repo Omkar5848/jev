@@ -1,0 +1,49 @@
+.calGrid {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+.calHead {
+  font-weight: 700;
+  font-size: 0.85rem;
+  text-align: center;
+  color: #6b7280;
+}
+.calPad { visibility: hidden; }
+.calCell {
+  position: relative; min-height: 84px; border-radius: 12px;
+  border: 1px solid #e5e7eb; background: #ffffff; padding: 8px;
+  display: grid; grid-template-rows: auto 1fr; align-items: start;
+  text-align: left; cursor: pointer; transition: box-shadow .15s ease;
+}
+.calCell:hover { box-shadow: 0 1px 6px rgba(0,0,0,0.06); }
+.calDay { font-weight: 700; color: #111827; }
+.calBadge { align-self: end; font-size: 0.7rem; font-weight: 700; padding: 4px 8px; border-radius: 9999px; width: fit-content; }
+
+/* Shift colorways */
+.sm { background: #f0f9ff; border-color: #bae6fd; }
+.se { background: #fff7ed; border-color: #fed7aa; }
+.sn { background: #f5f3ff; border-color: #ddd6fe; }
+.so { background: #f9fafb; border-color: #e5e7eb; }
+
+.calCell.sm .calBadge { background: #bae6fd; color: #1e3a8a; }
+.calCell.se .calBadge { background: #fed7aa; color: #9a3412; }
+.calCell.sn .calBadge { background: #ddd6fe; color: #5b21b6; }
+.calCell.so .calBadge { background: #e5e7eb; color: #374151; }
+
+:global(html[data-theme="dark"]) .calCell { border-color: #1f2937; background: #0f1012; }
+:global(html[data-theme="dark"]) .calDay { color: #f3f4f6; }
+:global(html[data-theme="dark"]) .calHead { color: #a1a1aa; }
+:global(html[data-theme="dark"]) .sm { background: rgba(59,130,246,0.1); border-color: #1f3a8a; }
+:global(html[data-theme="dark"]) .se { background: rgba(234,88,12,0.12); border-color: #7c2d12; }
+:global(html[data-theme="dark"]) .sn { background: rgba(99,102,241,0.12); border-color: #3730a3; }
+:global(html[data-theme="dark"]) .so { background: #0b0c10; border-color: #1f2937; }
+:global(html[data-theme="dark"]) .calCell.sm .calBadge { background: #1f3a8a; color: #dbeafe; }
+:global(html[data-theme="dark"]) .calCell.se .calBadge { background: #7c2d12; color: #fed7aa; }
+:global(html[data-theme="dark"]) .calCell.sn .calBadge { background: #3730a3; color: #ddd6fe; }
+:global(html[data-theme="dark"]) .calCell.so .calBadge { background: #1f2937; color: #e5e7eb; }
+
+.legend { display: flex; gap: 8px; margin-top: 10px; }
+.lg { font-size: 0.75rem; font-weight: 700; padding: 3px 8px; border-radius: 999px; }
+
+
