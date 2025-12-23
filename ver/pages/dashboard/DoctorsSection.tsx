@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import styles from "../../styles/Temp.module.css";
-import { Doctor } from "../hooks/useDoctors";
+import { Doctor } from "../../../hooks/useDoctors";
 import { FaPlus, FaTimes, FaEdit, FaTrash, FaPhone, FaEnvelope, FaUserMd, FaHospital } from "react-icons/fa";
 
 type Props = {

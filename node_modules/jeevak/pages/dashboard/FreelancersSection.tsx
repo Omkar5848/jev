@@ -1,6 +1,6 @@
 // components/dashboard/FreelancersSection.tsx
 import styles from '@/styles/Temp.module.css';
-import { Freelancer } from '../hooks/useFreelancers';
+import { Freelancer } from '../../../hooks/useFreelancers';
 
 type Props = {
   filtered: Freelancer[];

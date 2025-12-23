@@ -23,11 +23,11 @@ import FreelancersSection from './dashboard/FreelancersSection';
 import ProfileSection from './dashboard/ProfileSection';
 
 // Hooks used by tabs
-import { useHospitals } from './hooks/useHospitals';
-import { useDoctors } from './hooks/useDoctors';
-import { useDemands } from './hooks/useDemands';
-import { useVendors } from './hooks/useVendors';
-import { useFreelancers } from './hooks/useFreelancers';
+import { useHospitals } from '../../hooks/useHospitals';
+import { useDoctors } from '../../hooks/useDoctors';
+import { useDemands } from '../../hooks/useDemands';
+import { useVendors } from '../../hooks/useVendors';
+import { useFreelancers } from '../../hooks/useFreelancers';
 
 // Embedded tables for Overview swaps
 const HospitalTableSection = dynamic(() => import('./dashboard/HospitalTableSection'), { ssr: false });

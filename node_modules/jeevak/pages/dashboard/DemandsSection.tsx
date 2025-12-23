@@ -1,7 +1,7 @@
 // components/dashboard/DemandsSection.tsx
 import { useEffect, useRef, useState } from "react";
 import styles from "@/styles/Temp.module.css";
-import { Demand } from "../hooks/useDemands";
+import { Demand } from "../../../hooks/useDemands";
 import { FaPlus, FaTimes, FaEdit, FaTrash, FaClock, FaMoneyBillWave, FaUserMd, FaHospital } from "react-icons/fa";
 
 const formatCurrencyCompact = (n?: number) => {
