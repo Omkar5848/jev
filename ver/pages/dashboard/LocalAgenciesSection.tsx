@@ -9,7 +9,7 @@ import {
   updateAgency,
   deleteAgency,
   LocalAgency,
-} from "../../../hooks/useLocalAgencies";
+} from "../../hooks/useLocalAgencies";
 import { FaPlus, FaTimes } from "react-icons/fa";
 
 type AgencyForm = {

@@ -1,6 +1,6 @@
 // components/dashboard/VendorsSection.tsx
 import styles from '@/styles/Temp.module.css';
-import { Vendor } from '../../../hooks/useVendors';
+import { Vendor } from '../../hooks/useVendors';
 
 type Props = {
   filtered: Vendor[];

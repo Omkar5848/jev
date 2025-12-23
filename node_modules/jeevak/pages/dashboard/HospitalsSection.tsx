@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { FaPlus, FaTimes } from "react-icons/fa";
 import styles from "@/styles/Temp.module.css";
-import { Hospital } from "../../../hooks/useHospitals";
+import { Hospital } from "../../hooks/useHospitals";
 
 type Props = {
   filtered: Hospital[];
