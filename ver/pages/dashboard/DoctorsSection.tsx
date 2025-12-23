@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import styles from "../../styles/dashboard.module.css";
+import styles from "../../styles/Dashboard.module.css";
 import { Doctor } from "../hooks/useDoctors";
 import { FaPlus, FaTimes, FaEdit, FaTrash, FaPhone, FaEnvelope, FaUserMd, FaHospital } from "react-icons/fa";
 

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { FaPlus, FaTimes } from "react-icons/fa";
-import styles from "@/styles/dashboard.module.css";
+import styles from "@/styles/Dashboard.module.css";
 import { Hospital } from "../hooks/useHospitals";
 
 type Props = {
