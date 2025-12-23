@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
-import styles from '@/styles/Dashboard.module.css';
+import styles from '@/styles/dashboard.module.css';
 import { useRouter } from 'next/router';
 import { getProfile } from '@/utils/api';
 import dynamic from 'next/dynamic';

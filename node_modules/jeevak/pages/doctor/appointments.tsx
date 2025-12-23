@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import DoctorLayout from './DoctorLayout';
 import api from '@/utils/api';
-import styles from '@/styles/Dashboard.module.css';
+import styles from '@/styles/dashboard.module.css';
 import { FaCalendarPlus, FaClock, FaUser, FaTrash, FaClipboardList } from 'react-icons/fa';
 import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';

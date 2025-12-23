@@ -1,6 +1,6 @@
 // components/dashboard/DemandsSection.tsx
 import { useEffect, useRef, useState } from "react";
-import styles from "@/styles/Dashboard.module.css";
+import styles from "@/styles/dashboard.module.css";
 import { Demand } from "../hooks/useDemands";
 import { FaPlus, FaTimes, FaEdit, FaTrash, FaClock, FaMoneyBillWave, FaUserMd, FaHospital } from "react-icons/fa";
 

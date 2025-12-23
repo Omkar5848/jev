@@ -1,6 +1,6 @@
 // ver/pages/settings.tsx
 import { useEffect, useMemo, useState } from 'react';
-import styles from '@/styles/Dashboard.module.css'; // Using the Dashboard styles for consistency
+import styles from '@/styles/dashboard.module.css'; // Using the Dashboard styles for consistency
 import { useRouter } from 'next/router';
 import { getProfile, updateProfile, uploadAvatar } from '@/utils/api';
 import ThemeToggle from '@/components/ThemeToggle'; // Ensure you have this component

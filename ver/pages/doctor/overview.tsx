@@ -1,7 +1,7 @@
 import { useRouter } from 'next/router';
 import useSWR from 'swr';
 import DoctorLayout from './DoctorLayout';
-import styles from '@/styles/Dashboard.module.css';
+import styles from '@/styles/dashboard.module.css';
 import { FaUserInjured, FaCalendarCheck, FaCommentDots, FaPills } from 'react-icons/fa';
 import api from '@/utils/api';
 

@@ -2,7 +2,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import styles from "@/styles/Dashboard.module.css";
+import styles from "@/styles/dashboard.module.css";
 import {
   useLocalAgencies,
   createAgency,

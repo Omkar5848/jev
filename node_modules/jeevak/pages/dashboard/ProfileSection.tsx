@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import styles from '@/styles/Dashboard.module.css';
+import styles from '@/styles/dashboard.module.css';
 import api, { getProfile, updateProfile, uploadAvatar, sendOtp } from '@/utils/api';
 import { FaCheckCircle, FaExclamationTriangle, FaCamera } from 'react-icons/fa';
 
