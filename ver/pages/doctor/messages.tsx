@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import DoctorLayout from './DoctorLayout';
 import api from '@/utils/api';
-import styles from '@/styles/Dashboard.module.css';
+import styles from '@/styles/Temp.module.css';
 import { FaPaperPlane, FaPen, FaTrash, FaTimes, FaCheck } from 'react-icons/fa';
 
 // 1. UPDATE TYPE DEFINITION

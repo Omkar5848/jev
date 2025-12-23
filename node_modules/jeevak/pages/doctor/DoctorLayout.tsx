@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useEffect, useState } from 'react';
 import ThemeToggle from '../../components/ThemeToggle';
-import styles from '../../styles/Dashboard.module.css'; // Use the main dashboard styles
+import styles from '../../styles/Temp.module.css'; // Use the main dashboard styles
 import { FaChartPie, FaCalendarAlt, FaUserInjured, FaCommentDots, FaPills, FaSignOutAlt } from 'react-icons/fa';
 
 export default function DoctorLayout({ children }: { children: React.ReactNode }) {

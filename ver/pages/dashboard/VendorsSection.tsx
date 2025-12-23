@@ -1,5 +1,5 @@
 // components/dashboard/VendorsSection.tsx
-import styles from '@/styles/Dashboard.module.css';
+import styles from '@/styles/Temp.module.css';
 import { Vendor } from '../hooks/useVendors';
 
 type Props = {

@@ -1,5 +1,5 @@
 // components/dashboard/FreelancersSection.tsx
-import styles from '@/styles/Dashboard.module.css';
+import styles from '@/styles/Temp.module.css';
 import { Freelancer } from '../hooks/useFreelancers';
 
 type Props = {

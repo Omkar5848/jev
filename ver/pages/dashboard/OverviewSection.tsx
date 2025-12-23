@@ -1,4 +1,4 @@
-import styles from '@/styles/Dashboard.module.css';
+import styles from '@/styles/Temp.module.css';
 import Link from 'next/link';
 import HospitalTableSection from './HospitalTableSection';
 import DoctorsTableSection from './DoctorsTableSection';

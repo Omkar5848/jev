@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import DoctorLayout from './DoctorLayout';
 import api from '@/utils/api';
-import styles from '@/styles/Dashboard.module.css';
+import styles from '@/styles/Temp.module.css';
 import { FaPlus, FaUserInjured, FaNotesMedical, FaPhone, FaTrash, FaEdit } from 'react-icons/fa';
 
 type Patient = {
