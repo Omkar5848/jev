@@ -1,7 +1,5 @@
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
-// Doctor import is not needed for doctorId anymore
-// import Doctor from '../models/Doctor.js';
 
 export default async function authMiddleware(req, res, next) {
   const header = req.headers.authorization || '';
@@ -22,7 +20,6 @@ export default async function authMiddleware(req, res, next) {
       return res.status(403).json({ message: 'Account disabled' });
     }
 
-    // IMPORTANT: get doctorId only from the token
     const doctorId = decoded.doctorId || null;
 
     req.user = {
@@ -30,12 +27,10 @@ export default async function authMiddleware(req, res, next) {
       name: user.name,
       email: user.email,
       profession: user.profession,
-      role:
-        user.profession?.toLowerCase() === 'doctor'
-          ? 'Doctor'
-          : (user.role || 'user'),
+      role: user.role || decoded.role || 'user',
       avatarUrl: user.avatarUrl || null,
-      doctorId: doctorId,
+      doctorId,
+      approvalStatus: user.approvalStatus,
     };
 
     return next();

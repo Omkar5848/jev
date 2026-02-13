@@ -3,15 +3,31 @@ import crypto from 'crypto';
 import User from '../models/User.js';
 import { sendOTP } from '../utils/mailer.js';
 import { putOtp, verifyOtp } from '../services/otpStore.js';
-import { registerUser, loginUser, me, verifyEmail } from '../controllers/authController.js'; // Import verifyEmail
+import {
+  registerUser,
+  loginUser,
+  me,
+  verifyEmail,
+  listRegistrations,
+  reviewRegistration,
+} from '../controllers/authController.js';
 import auth from '../middleware/authMiddleware.js';
 
 const router = express.Router();
+
+const adminOnly = (req, res, next) => {
+  if (req.user?.role !== 'Admin') {
+    return res.status(403).json({ message: 'Admin access required' });
+  }
+  next();
+};
 
 router.post('/verify-email', auth, verifyEmail);
 router.post('/register', registerUser);
 router.post('/login', loginUser);
 router.get('/me', auth, me);
+router.get('/registrations', auth, adminOnly, listRegistrations);
+router.patch('/registrations/:id', auth, adminOnly, reviewRegistration);
 
 router.post('/send-otp', async (req, res) => {
   try {
@@ -61,7 +77,4 @@ router.post('/reset', async (req, res) => {
   return res.json({ message: 'Password reset successful' });
 });
 
-
 export default router;
-
-

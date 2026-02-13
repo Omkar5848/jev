@@ -4,6 +4,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import api from '@/utils/api';
 
+type Profession = 'doctor' | 'nurse' | 'technician' | 'patient' | 'local_agency' | 'admin';
+
 type AuthUser = {
   id: number | string;
   name: string;
@@ -18,8 +20,8 @@ export default function Register() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
-  const [profession, setProfession] =
-    useState<'doctor' | 'nurse' | 'technician' | 'receptionist'>('doctor');
+  const [adminKey, setAdminKey] = useState('');
+  const [profession, setProfession] = useState<Profession>('patient');
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState<string | undefined>(undefined);
   const [error, setError] = useState<string | undefined>(undefined);
@@ -38,11 +40,19 @@ export default function Register() {
     setLoading(true);
     try {
       const res = await api.post('/api/auth/register', {
-        name, email, password, profession
+        name, email, password, profession,
+        ...(profession === 'admin' ? { adminKey } : {}),
       });
 
       const token: string | undefined = res.data?.token;
       const user: AuthUser | undefined = res.data?.user;
+      const requiresApproval = Boolean(res.data?.requiresApproval);
+
+      if (requiresApproval) {
+        setMsg('Registration submitted. Please wait for admin approval before login.');
+        setTimeout(() => router.push('/login'), 1200);
+        return;
+      }
 
       if (typeof window !== 'undefined' && token) {
         localStorage.setItem('token', token);
@@ -50,23 +60,19 @@ export default function Register() {
       if (user?.role) localStorage.setItem('role', user.role);
       if (user?.doctorId != null) localStorage.setItem('doctorId', String(user.doctorId));
 
-      if (token) {
-        // Auto-login path with role-based routing
-        if (user?.role === 'Doctor') {
-          setMsg('Registered successfully. Redirecting to doctor dashboard...');
-          router.push('/doctor/overview');
-        } else {
-          setMsg('Registered successfully. Redirecting...');
-          router.push('/dashboard');
-        }
+      if (token && user?.role === 'Doctor') {
+        setMsg('Registered successfully. Redirecting to doctor dashboard...');
+        router.push('/doctor/overview');
+        return;
+      }
+      if (token && user?.role === 'Admin') {
+        router.push('/dashboard');
         return;
       }
 
-      // Fallback: no token returned -> go to login
-      setMsg('Registered! You can now login.');
-      setTimeout(() => router.push('/login'), 800);
+      setMsg('Registered successfully. Please login after admin approval.');
+      setTimeout(() => router.push('/login'), 1000);
     } catch (err: any) {
-      // Clear any stale keys on failure
       localStorage.removeItem('token');
       localStorage.removeItem('role');
       localStorage.removeItem('doctorId');
@@ -87,47 +93,29 @@ export default function Register() {
       <div className={styles.card}>
         <h1 className="logo">Jeevak</h1>
         <form onSubmit={onSubmit}>
-          <input
-            className={styles.input}
-            placeholder="Name"
-            value={name}
-            onChange={e => setName(e.target.value)}
-            required
-          />
-          <input
-            className={styles.input}
-            placeholder="Email"
-            type="email"
-            value={email}
-            onChange={e => setEmail(e.target.value)}
-            required
-          />
-          <input
-            className={styles.input}
-            placeholder="Password"
-            type="password"
-            value={password}
-            onChange={e => setPassword(e.target.value)}
-            required
-          />
-          <input
-            className={styles.input}
-            placeholder="Confirm Password"
-            type="password"
-            value={confirm}
-            onChange={e => setConfirm(e.target.value)}
-            required
-          />
-          <select
-            className={styles.input}
-            value={profession}
-            onChange={e => setProfession(e.target.value as any)}
-          >
+          <input className={styles.input} placeholder="Name" value={name} onChange={e => setName(e.target.value)} required />
+          <input className={styles.input} placeholder="Email" type="email" value={email} onChange={e => setEmail(e.target.value)} required />
+          <input className={styles.input} placeholder="Password" type="password" value={password} onChange={e => setPassword(e.target.value)} required />
+          <input className={styles.input} placeholder="Confirm Password" type="password" value={confirm} onChange={e => setConfirm(e.target.value)} required />
+          <select className={styles.input} value={profession} onChange={e => setProfession(e.target.value as Profession)}>
+            <option value="patient">Patient</option>
             <option value="doctor">Doctor</option>
             <option value="nurse">Nurse</option>
             <option value="technician">Technician</option>
-            <option value="receptionist">Receptionist</option>
+            <option value="local_agency">Local Agency</option>
+            <option value="admin">Admin</option>
           </select>
+
+          {profession === 'admin' && (
+            <input
+              className={styles.input}
+              placeholder="Admin key"
+              type="password"
+              value={adminKey}
+              onChange={(e) => setAdminKey(e.target.value)}
+              required
+            />
+          )}
 
           <button className={styles.button} disabled={loading}>
             {loading ? 'Registering...' : 'Register'}
