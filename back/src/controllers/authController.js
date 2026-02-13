@@ -115,11 +115,12 @@ export const loginUser = async (req, res) => {
   try {
     const email = asNonEmptyStr(req.body?.email)?.toLowerCase();
     const password = asNonEmptyStr(req.body?.password);
+    const otp = asNonEmptyStr(req.body?.otp);
 
-    if (!email || !password) {
+    if (!email || (!password && !otp)) {
       return res
         .status(400)
-        .json({ message: 'email, password required' });
+        .json({ message: 'email and either password or otp are required' });
     }
 
     const user = await User.findOne({ where: { email } });
@@ -131,7 +132,14 @@ export const loginUser = async (req, res) => {
       return res.status(403).json({ message: 'Registration pending admin approval' });
     }
 
-    const ok = await bcrypt.compare(password, user.password);
+    let ok = false;
+
+    if (password) {
+      ok = await bcrypt.compare(password, user.password);
+    } else if (otp) {
+      ok = verifyOtp(email, otp);
+    }
+
     if (!ok) {
       return res.status(400).json({ message: 'Invalid credentials' });
     }

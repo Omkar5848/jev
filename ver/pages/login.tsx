@@ -65,15 +65,17 @@ export default function Login() {
     setError(undefined);
     setLoading(true);
     try {
-      if (!otp) {
-        setError('OTP is required');
+      if (!password && !otp) {
+        setError('Enter password or OTP to continue');
         setLoading(false);
         return;
       }
 
-      await api.post('/api/auth/verify-otp', { email, otp });
-
-      const res = await api.post('/api/auth/login', { email, password });
+      const res = await api.post('/api/auth/login', {
+        email,
+        ...(password ? { password } : {}),
+        ...(otp ? { otp } : {}),
+      });
       const token: string | undefined = res.data?.token;
       const user: AuthUser | undefined = res.data?.user;
 
@@ -107,7 +109,7 @@ export default function Login() {
       <div className={styles.card}>
         <div className={styles.header}>
           <h1 className={styles.logo}>Jeevak</h1>
-          <p className={styles.subtitle}>Sign in to access your dashboard</p>
+          <p className={styles.subtitle}>Sign in with password OR OTP</p>
         </div>
 
         <form onSubmit={onSubmit} className={styles.form}>
@@ -118,13 +120,16 @@ export default function Login() {
 
           <div className={styles.inputGroup}>
             <label className={styles.label}>Password</label>
-            <input className={styles.input} type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" required />
+            <input className={styles.input} type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Enter password (optional if using OTP)" />
           </div>
+
+
+          <p className={styles.subtitle} style={{ fontSize: "0.85rem", marginTop: -4 }}>Use at least one method: Password or OTP.</p>
 
           <div className={styles.inputGroup}>
             <label className={styles.label}>OTP</label>
             <div style={{ display: 'flex', gap: 8 }}>
-              <input className={styles.input} value={otp} onChange={e => setOtp(e.target.value)} placeholder="Enter OTP" required />
+              <input className={styles.input} value={otp} onChange={e => setOtp(e.target.value)} placeholder="Enter OTP (optional if using password)" />
               <button type="button" className={styles.button} style={{ width: '40%' }} onClick={sendOtp}>
                 {otpSent ? 'Resend OTP' : 'Send OTP'}
               </button>
