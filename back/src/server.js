@@ -22,6 +22,7 @@ import './models/Hospital.js';
 import './models/Freelancer.js';
 import './models/Vendor.js';
 import './models/Demand.js';
+import './models/DemandBid.js';
 import './models/Doctor.js';
 import './models/LocalAgency.js';
 import './models/Patient.js';

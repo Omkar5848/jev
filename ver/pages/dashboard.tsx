@@ -21,6 +21,7 @@ import LocalAgenciesSection from './dashboard/LocalAgenciesSection';
 import VendorsSection from './dashboard/VendorsSection';
 import FreelancersSection from './dashboard/FreelancersSection';
 import ProfileSection from './dashboard/ProfileSection';
+import RegistrationsSection from './dashboard/RegistrationsSection';
 
 // Hooks used by tabs
 import { useHospitals } from '../hooks/useHospitals';
@@ -38,12 +39,13 @@ type User = {
   id: string | number;
   name: string;
   profession?: string;
+  role?: string;
   email?: string;
   avatarUrl?: string | null;
 };
 
 // Keep union with all tabs
-type TabSection = 'overview' | 'profile' | 'hospitals' | 'doctors' | 'demands' | 'local_agencies' | 'vendors' | 'freelancers' ;
+type TabSection = 'overview' | 'profile' | 'hospitals' | 'doctors' | 'demands' | 'local_agencies' | 'registrations' | 'vendors' | 'freelancers' ;
 
 export default function Dashboard() {
   const router = useRouter();
@@ -104,6 +106,14 @@ export default function Dashboard() {
     })();
   }, []);
 
+
+  useEffect(() => {
+    if (!user) return;
+    if (user.role && user.role !== 'Admin') {
+      router.replace('/login');
+    }
+  }, [user, router]);
+
   // Data hooks
   const hospitals = useHospitals(debounced || '');
   const doctors   = useDoctors(debounced || '');
@@ -145,7 +155,7 @@ export default function Dashboard() {
     { id: 'doctors',         name: 'Doctors',         icon: '👨‍⚕️' },
     { id: 'demands',         name: 'Demands',         icon: '📄' },
     { id: 'local_agencies',  name: 'Local Agencies',  icon: '🏢' },
-   
+    { id: 'registrations',   name: 'Approvals',       icon: '✅' },
   ] as const;
 
   return (
@@ -335,9 +345,9 @@ export default function Dashboard() {
             )}
 
             {activeTab === 'local_agencies' && <LocalAgenciesSection />}
+            {activeTab === 'registrations' && <RegistrationsSection />}
 
 
-            
           </main>
         </div>
       </div>

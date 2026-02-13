@@ -1,14 +1,13 @@
-// backend/src/routes/demandRoutes.js
 import express from 'express';
 import Demand from '../models/Demand.js';
-// import { verifyToken } from '../middleware/authMiddleware.js';
+import DemandBid from '../models/DemandBid.js';
+import auth from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 const toCsv = (v) => (Array.isArray(v) ? v.join(',') : typeof v === 'string' ? v : null);
 const toArr = (csv) => (csv ? String(csv).split(',').map(s => s.trim()).filter(Boolean) : []);
 
-// GET /api/demands
-router.get('/', /* verifyToken, */ async (_req, res) => {
+router.get('/', async (_req, res) => {
   try {
     const rows = await Demand.findAll({ order: [['id', 'DESC']] });
     const mapped = rows.map(r => {
@@ -22,8 +21,7 @@ router.get('/', /* verifyToken, */ async (_req, res) => {
   }
 });
 
-// GET /api/demands/:id
-router.get('/:id', /* verifyToken, */ async (req, res) => {
+router.get('/:id', async (req, res) => {
   try {
     const row = await Demand.findByPk(req.params.id);
     if (!row) return res.status(404).json({ message: 'Not found' });
@@ -35,8 +33,7 @@ router.get('/:id', /* verifyToken, */ async (req, res) => {
   }
 });
 
-// POST /api/demands
-router.post('/', /* verifyToken, */ async (req, res) => {
+router.post('/', auth, async (req, res) => {
   try {
     const b = req.body || {};
     const created = await Demand.create({
@@ -60,8 +57,7 @@ router.post('/', /* verifyToken, */ async (req, res) => {
   }
 });
 
-// PUT /api/demands/:id
-router.put('/:id', /* verifyToken, */ async (req, res) => {
+router.put('/:id', auth, async (req, res) => {
   try {
     const row = await Demand.findByPk(req.params.id);
     if (!row) return res.status(404).json({ message: 'Not found' });
@@ -89,8 +85,7 @@ router.put('/:id', /* verifyToken, */ async (req, res) => {
   }
 });
 
-// DELETE /api/demands/:id
-router.delete('/:id', /* verifyToken, */ async (req, res) => {
+router.delete('/:id', auth, async (req, res) => {
   try {
     const row = await Demand.findByPk(req.params.id);
     if (!row) return res.status(404).json({ message: 'Not found' });
@@ -100,6 +95,33 @@ router.delete('/:id', /* verifyToken, */ async (req, res) => {
     console.error(e);
     res.status(500).json({ message: 'Failed to delete demand' });
   }
+});
+
+router.get('/:id/bids', auth, async (req, res) => {
+  const bids = await DemandBid.findAll({ where: { demandId: req.params.id }, order: [['createdAt', 'DESC']] });
+  res.json(bids);
+});
+
+router.post('/:id/bids', auth, async (req, res) => {
+  if (req.user.role !== 'LocalAgency') {
+    return res.status(403).json({ message: 'Only local agencies can bid for shifts' });
+  }
+
+  const { bidAmount, message } = req.body || {};
+  if (!bidAmount) return res.status(400).json({ message: 'bidAmount is required' });
+
+  const demand = await Demand.findByPk(req.params.id);
+  if (!demand) return res.status(404).json({ message: 'Demand not found' });
+
+  const bid = await DemandBid.create({
+    demandId: Number(req.params.id),
+    agencyName: req.user.name,
+    agencyEmail: req.user.email,
+    bidAmount,
+    message: message || null,
+  });
+
+  res.status(201).json(bid);
 });
 
 export default router;
