@@ -1,4 +1,4 @@
-// backend/src/controllers/freelancerController.js
+z// backend/src/controllers/freelancerController.js
 const Freelancer = require('../models/Freelancer');
 
 exports.ensureInit = async () => {

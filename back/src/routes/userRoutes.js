@@ -3,8 +3,9 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import auth from '../middleware/authMiddleware.js';
+import { getDashboardStats } from '../controllers/userController.js';
 import User from '../models/User.js';
-
+import authMiddleware from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
@@ -60,5 +61,7 @@ router.post('/avatar', auth, upload.single('avatar'), async (req, res) => {
     return res.status(500).json({ message: e?.message || 'Upload failed' });
   }
 });
+
+router.get('/stats', authMiddleware, getDashboardStats);
 
 export default router;

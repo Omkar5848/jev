@@ -3,16 +3,41 @@ import crypto from 'crypto';
 import User from '../models/User.js';
 import { sendOTP } from '../utils/mailer.js';
 import { putOtp, verifyOtp } from '../services/otpStore.js';
-import { registerUser, loginUser, me, verifyEmail } from '../controllers/authController.js'; // Import verifyEmail
+import { 
+  registerUser, 
+  loginUser, 
+  me, 
+  verifyEmail,
+  sendLoginOtp,   // <--- Added import
+  loginWithOtp,   // <--- Added import
+  setNewPassword  // <--- Added import
+} from '../controllers/authController.js'; 
 import auth from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
-router.post('/verify-email', auth, verifyEmail);
+// ==========================================
+// AUTHENTICATION ROUTES
+// ==========================================
+
+// Standard Auth
 router.post('/register', registerUser);
 router.post('/login', loginUser);
 router.get('/me', auth, me);
 
+// Email Verification
+router.post('/verify-email', auth, verifyEmail);
+
+// New: Passwordless / OTP Login Flow
+router.post('/login-otp-request', sendLoginOtp);
+router.post('/login-otp-verify', loginWithOtp);
+router.post('/set-password', auth, setNewPassword);
+
+// ==========================================
+// LEGACY / GENERIC ROUTES (Kept for compatibility)
+// ==========================================
+
+// Generic OTP Send (For Reset Password flow etc.)
 router.post('/send-otp', async (req, res) => {
   try {
     const { email } = req.body || {};
@@ -34,6 +59,7 @@ router.post('/send-otp', async (req, res) => {
   }
 });
 
+// Generic OTP Verify
 router.post('/verify-otp', async (req, res) => {
   try {
     const { email, otp } = req.body || {};
@@ -49,19 +75,20 @@ router.post('/verify-otp', async (req, res) => {
   }
 });
 
+// Password Reset (Generic)
 router.post('/reset', async (req, res) => {
   const { email, password } = req.body || {};
   if (!email || !password) return res.status(400).json({ error: 'Email and password are required' });
+  
   const user = await User.findOne({ where: { email } });
   if (!user) return res.status(404).json({ error: 'User not found' });
+  
   const bcrypt = (await import('bcryptjs')).default;
   const salt = await bcrypt.genSalt(10);
   user.password = await bcrypt.hash(password, salt);
   await user.save();
+  
   return res.json({ message: 'Password reset successful' });
 });
 
-
 export default router;
-
-

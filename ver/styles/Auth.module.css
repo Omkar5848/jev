@@ -168,3 +168,36 @@
 .backHome:hover {
   color: var(--color-text);
 }
+
+
+.select {
+  width: 100%;
+  padding: 0.75rem;
+  border-radius: 8px;
+  border: 1px solid var(--color-border); 
+  background-color: var(--color-background); 
+  color: var(--color-text);
+  font-size: 1rem;
+  outline: none;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  appearance: none; 
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: var(--select-caret-light);
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
+  background-size: 16px auto;
+}
+
+/* Optional: Dark mode support if your app has it */
+@media (prefers-color-scheme: dark) {
+  .select {
+    background-image: var(--select-caret-dark);
+  }
+}
+
+/* Support for manual theme toggling if you use data-attributes */
+[data-color-scheme="dark"] .select {
+  background-image: var(--select-caret-dark);
+}

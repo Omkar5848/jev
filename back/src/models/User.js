@@ -8,6 +8,7 @@ const User = sequelize.define('User', {
   profession: { type: DataTypes.STRING },
   avatarUrl: { type: DataTypes.STRING, allowNull: true },
   isEmailVerified: { type: DataTypes.BOOLEAN, defaultValue: false },
+  needsPasswordReset: { type: DataTypes.BOOLEAN, defaultValue: false },
 }, {
   timestamps: true
 });

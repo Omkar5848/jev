@@ -1993,3 +1993,8 @@ html[data-theme="dark"] body {
   background: #050816;
   color: #ffffff;
 }
+
+body {
+  width: 100%;
+  overflow-x: hidden; /* Prevents horizontal scroll */
+}

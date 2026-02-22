@@ -2,14 +2,14 @@ import { useRouter } from 'next/router';
 import useSWR from 'swr';
 import DoctorLayout from './DoctorLayout';
 import styles from '@/styles/Temp.module.css';
-import { FaUserInjured, FaCalendarCheck, FaCommentDots, FaPills } from 'react-icons/fa';
+import { FaUserInjured, FaCalendarCheck, FaCommentDots } from 'react-icons/fa';
 import api from '@/utils/api';
 
+// 1. Define the shape your UI expects
 type OverviewData = {
   patientsCount: number;
   appointmentsCount: number;
   unreadMessages: number;
-  // Make sure this matches backend response
   todayAppointments: Array<{ 
     id: number; 
     time: string; 
@@ -18,12 +18,28 @@ type OverviewData = {
   }>;
 };
 
-const fetcher = () => api.get('/api/doctor-features/overview').then(res => res.data);
+// 2. Fetch from the NEW API but transform it to match your OLD design
+const fetcher = async () => {
+  const res = await api.get('/api/users/stats');
+  const { stats, appointments } = res.data;
+
+  // Extract counts from the generic stats array
+  const patientStat = stats.find((s: any) => s.label === 'My Patients');
+  
+  // Return data in the exact format your design needs
+  return {
+    patientsCount: patientStat ? patientStat.value : 0,
+    appointmentsCount: appointments.length, // Real count from the list
+    unreadMessages: 0, // (Backend update needed for real message count)
+    todayAppointments: appointments
+  };
+};
 
 export default function DoctorOverview() {
   const router = useRouter();
-  // refreshInterval ensures new messages/appointments appear without refreshing page
-  const { data, error } = useSWR<OverviewData>('doctor-overview', fetcher, { refreshInterval: 5000 });
+  // refreshInterval keeps data live
+  const { data, error } = useSWR<OverviewData>('doctor-stats-real', fetcher, { refreshInterval: 5000 });
+  
   const loading = !data && !error;
   const go = (path: string) => router.push(path);
 
@@ -35,7 +51,7 @@ export default function DoctorOverview() {
           <p>Overview of your day</p>
         </div>
 
-        {/* --- STATS GRID --- */}
+        {/* --- STATS GRID (YOUR ORIGINAL DESIGN) --- */}
         <div className={styles.statsGrid}>
           
           {/* Patients */}
@@ -60,7 +76,7 @@ export default function DoctorOverview() {
             <div className={styles.statLabel}>Appointments Today</div>
           </button>
 
-          {/* Messages (With RED Badge) */}
+          {/* Messages */}
           <button className={styles.statCard} onClick={() => go('/doctor/messages')} style={{position:'relative'}}>
             <div className={styles.statHeader}>
               <div className={styles.statIcon} style={{ background: '#fef3c7', color: '#d97706' }}>
@@ -86,13 +102,12 @@ export default function DoctorOverview() {
             </div>
             <div className={styles.statValue}>{loading ? '-' : data?.unreadMessages || 0}</div>
             <div className={styles.statLabel}>
-               {/* Label changes based on count */}
                {data?.unreadMessages ? 'Unread Messages' : 'No New Messages'}
             </div>
           </button>
         </div>
 
-        {/* --- TODAY'S SCHEDULE LIST (Fixed) --- */}
+        {/* --- TODAY'S SCHEDULE LIST (REAL DATA) --- */}
         <div className={styles.sectionCard} style={{ marginTop: '2rem' }}>
           <div className={styles.cardHeader}>
             <h3 className={styles.cardTitle}>Today's Schedule</h3>
@@ -109,7 +124,7 @@ export default function DoctorOverview() {
              </div>
           ) : (
             <div className={styles.list}>
-              {/* Loop through the actual data */}
+              {/* Render Real Appointments */}
               {data.todayAppointments.map((apt) => (
                 <div key={apt.id} className={styles.listRow}>
                   <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>

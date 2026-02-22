@@ -7,10 +7,13 @@ dotenv.config();
 
 let sequelize;
 
+// Check if we are truly using the cloud URL
+const isCloudUrl = process.env.DATABASE_URL && process.env.DATABASE_URL.includes('neon.tech');
+
 // ==========================================
-// SCENARIO 1: PRODUCTION (Cloud / Neon)
+// SCENARIO 1: CLOUD (Neon/Render)
 // ==========================================
-if (process.env.DATABASE_URL) {
+if (isCloudUrl) {
   console.log('🌍 Connecting to Cloud Database (Neon)...');
   
   sequelize = new Sequelize(process.env.DATABASE_URL, {
@@ -20,7 +23,7 @@ if (process.env.DATABASE_URL) {
     dialectOptions: {
       ssl: {
         require: true, 
-        rejectUnauthorized: false // Required for Neon/Render SSL connections
+        rejectUnauthorized: false // Required for Neon
       }
     }
   });
@@ -32,37 +35,31 @@ if (process.env.DATABASE_URL) {
 else {
   console.log('💻 Connecting to Local Database...');
 
-  const PG_DB = process.env.PG_DB || 'jeevak';
-  const PG_USER = process.env.PG_USER || 'postgres';
-  const PG_PASSWORD = process.env.PG_PASSWORD || 'omkar';
-  const PG_HOST = process.env.PG_HOST || 'localhost';
-  const PG_PORT = process.env.PG_PORT || 5432; // Default Postgres port is 5432, usually not 5001
+  // If DATABASE_URL is set (but not cloud), use it. Otherwise build from parts.
+  const connectionString = process.env.DATABASE_URL || `postgres://${process.env.PG_USER}:${process.env.PG_PASSWORD}@${process.env.PG_HOST}:${process.env.PG_PORT}/${process.env.PG_DB}`;
 
-  // Step 1: Check/Create DB (Only needed locally)
+  // Step 1: Check/Create DB (Auto-create database if missing)
   try {
-    const tempSequelize = new Sequelize('postgres', PG_USER, PG_PASSWORD, {
-      host: PG_HOST,
-      port: PG_PORT,
-      dialect: 'postgres',
-      logging: false,
-      dialectModule: pg
-    });
+    // Connect to default 'postgres' db first to check if 'jeevak' exists
+    const tempSequelize = new Sequelize(
+      `postgres://${process.env.PG_USER || 'postgres'}:${process.env.PG_PASSWORD || 'omkar'}@${process.env.PG_HOST || 'localhost'}:${process.env.PG_PORT || 5432}/postgres`, 
+      { dialect: 'postgres', logging: false, dialectModule: pg }
+    );
     
-    await tempSequelize.query(`CREATE DATABASE "${PG_DB}";`);
-    console.log(`✅ Database '${PG_DB}' created`);
-    await tempSequelize.close(); // Close temp connection
+    const dbName = process.env.PG_DB || 'jeevak';
+    await tempSequelize.query(`CREATE DATABASE "${dbName}";`);
+    console.log(`✅ Database '${dbName}' created`);
+    await tempSequelize.close();
   } catch (error) {
     if (error.original?.code === '42P04') {
-      console.log(`ℹ️ Database '${PG_DB}' already exists`);
+      console.log(`ℹ️ Database already exists`);
     } else {
-      console.warn('⚠️ Local DB Creation Check Skipped/Failed:', error.message);
+      console.warn('⚠️ Local DB Check warning (ignorable if DB exists):', error.message);
     }
   }
 
-  // Step 2: Connect to Local Target DB
-  sequelize = new Sequelize(PG_DB, PG_USER, PG_PASSWORD, {
-    host: PG_HOST,
-    port: PG_PORT,
+  // Step 2: Connect to the actual DB
+  sequelize = new Sequelize(connectionString, {
     dialect: 'postgres',
     dialectModule: pg,
     logging: false,
@@ -72,6 +69,7 @@ else {
       acquire: 30000,
       idle: 10000
     }
+    // NOTICE: No ssl options here!
   });
 }
 

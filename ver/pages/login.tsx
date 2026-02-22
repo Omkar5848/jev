@@ -1,68 +1,88 @@
-// ver/pages/login.tsx
 import { FormEvent, useState } from 'react';
 import styles from '@/styles/Auth.module.css';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import api from '@/utils/api';
-import ThemeToggle from '@/components/ThemeToggle'; // Make sure this import works
-
-type AuthUser = {
-  id: number | string;
-  name: string;
-  email: string;
-  profession?: string;
-  role?: string;
-  doctorId?: number | string | null;
-};
+import ThemeToggle from '@/components/ThemeToggle';
 
 export default function Login() {
+  // Login Method Toggle: 'password' or 'otp'
+  const [method, setMethod] = useState<'password' | 'otp'>('password');
+  
+  // Form State
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [otp, setOtp] = useState('');
+  
+  // OTP Flow Step: 1 = Request OTP, 2 = Verify OTP
+  const [step, setStep] = useState(1); 
+
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | undefined>(undefined);
+  const [error, setError] = useState('');
   const router = useRouter();
 
-  async function resolveUserFromMe(): Promise<AuthUser | null> {
+  // --- 1. REQUEST OTP ---
+  async function requestOtp() {
+    setError('');
+    setLoading(true);
     try {
-      const me = await api.get('/api/auth/me', {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token') || ''}` }
-      });
-      return me.data as AuthUser;
-    } catch {
-      return null;
+      await api.post('/api/auth/login-otp-request', { email });
+      setStep(2); // Move to verify step
+      alert('OTP sent to your email!');
+    } catch (err: any) {
+      setError(err?.response?.data?.message || 'Failed to send OTP');
+    } finally {
+      setLoading(false);
     }
   }
 
+  // --- 2. SUBMIT LOGIN (Password OR OTP) ---
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
-    setError(undefined);
+    setError('');
     setLoading(true);
+
     try {
-      const res = await api.post('/api/auth/login', { email, password });
-      const token: string | undefined = res.data?.token;
-      const user: AuthUser | undefined = res.data?.user;
-
-      if (typeof window !== 'undefined' && token) {
-        localStorage.setItem('token', token);
-      }
-
-      let u: AuthUser | null | undefined = user;
-      if (!u && token) {
-        u = await resolveUserFromMe();
-      }
-
-      if (u?.role) localStorage.setItem('role', u.role);
-      if (u?.doctorId != null) localStorage.setItem('doctorId', String(u.doctorId));
-
-      if (u?.role === 'Doctor') {
-        router.push('/doctor/overview');
+      let data;
+      
+      if (method === 'password') {
+        // A. Standard Login
+        const res = await api.post('/api/auth/login', { email, password });
+        data = res.data;
       } else {
-        router.push('/dashboard');
+        // B. OTP Login Verify
+        const res = await api.post('/api/auth/login-otp-verify', { email, otp });
+        data = res.data;
       }
+      
+      // Store Token & Role
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('role', data.user.role);
+      
+      if (data.user.doctorId) {
+        localStorage.setItem('doctorId', String(data.user.doctorId));
+      }
+
+      // --- REDIRECT LOGIC ---
+      
+      // 1. If user needs to set password (e.g. new patient via OTP)
+      if (data.requiresPasswordSet) {
+          router.push('/set-password');
+          return;
+      }
+
+      // 2. Standard Role Redirects
+      const role = data.user.role;
+      const profession = data.user.profession;
+
+      if (role === 'Admin' || profession === 'Admin') router.push('/dashboard');
+      else if (role === 'Doctor' || profession === 'Doctor') router.push('/doctor/overview');
+      else if (profession === 'Nurse') router.push('/nurse/dashboard');
+      else if (profession === 'Technician') router.push('/technician/dashboard');
+      else router.push('/patient/dashboard'); // Default Patient
+
     } catch (err: any) {
-      localStorage.removeItem('role');
-      localStorage.removeItem('doctorId');
-      setError(err?.response?.data?.message || 'Invalid credentials');
+      setError(err?.response?.data?.message || 'Login failed');
     } finally {
       setLoading(false);
     }
@@ -70,17 +90,47 @@ export default function Login() {
 
   return (
     <div className={styles.container}>
-      <div style={{ position: 'absolute', top: 20, right: 20 }}>
+      <div className="absolute top-5 right-5">
         <ThemeToggle />
       </div>
       
       <div className={styles.card}>
         <div className={styles.header}>
           <h1 className={styles.logo}>Jeevak</h1>
-          <p className={styles.subtitle}>Sign in to access your dashboard</p>
+          <p className={styles.subtitle}>Secure Access Portal</p>
+        </div>
+
+        {/* --- METHOD TOGGLE --- */}
+        <div style={{ display: 'flex', borderBottom: '1px solid var(--color-border)', marginBottom: '1.5rem' }}>
+            <button 
+                type="button"
+                onClick={() => setMethod('password')}
+                style={{
+                    flex: 1, padding: '10px', border: 'none', background: 'none', cursor: 'pointer',
+                    borderBottom: method === 'password' ? '2px solid var(--color-primary)' : 'none',
+                    fontWeight: method === 'password' ? 'bold' : 'normal',
+                    color: method === 'password' ? 'var(--color-primary)' : 'var(--color-text-secondary)'
+                }}
+            >
+                Password
+            </button>
+            <button 
+                type="button"
+                onClick={() => setMethod('otp')}
+                style={{
+                    flex: 1, padding: '10px', border: 'none', background: 'none', cursor: 'pointer',
+                    borderBottom: method === 'otp' ? '2px solid var(--color-primary)' : 'none',
+                    fontWeight: method === 'otp' ? 'bold' : 'normal',
+                    color: method === 'otp' ? 'var(--color-primary)' : 'var(--color-text-secondary)'
+                }}
+            >
+                Login via OTP
+            </button>
         </div>
 
         <form onSubmit={onSubmit} className={styles.form}>
+          
+          {/* Email is common for both */}
           <div className={styles.inputGroup}>
             <label className={styles.label}>Email Address</label>
             <input
@@ -88,36 +138,80 @@ export default function Login() {
               type="email"
               value={email}
               onChange={e => setEmail(e.target.value)}
-              placeholder="doctor@hospital.com"
               required
+              placeholder="name@example.com"
+              disabled={loading || (method === 'otp' && step === 2)} // Lock email during OTP verify
             />
           </div>
           
-          <div className={styles.inputGroup}>
-            <label className={styles.label}>Password</label>
-            <input
-              className={styles.input}
-              type="password"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              placeholder="••••••••"
-              required
-            />
-          </div>
+          {/* PASSWORD INPUT */}
+          {method === 'password' && (
+            <div className={styles.inputGroup}>
+                <label className={styles.label}>Password</label>
+                <input
+                className={styles.input}
+                type="password"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                required
+                placeholder="••••••••"
+                />
+            </div>
+          )}
+
+          {/* OTP INPUT */}
+          {method === 'otp' && step === 2 && (
+            <div className={styles.inputGroup}>
+                <label className={styles.label}>Enter OTP</label>
+                <input
+                className={styles.input}
+                type="text"
+                value={otp}
+                onChange={e => setOtp(e.target.value)}
+                required
+                placeholder="123456"
+                maxLength={6}
+                style={{ letterSpacing: '2px', textAlign: 'center', fontSize: '1.2rem' }}
+                />
+            </div>
+          )}
 
           {error && <div className={styles.error}>{error}</div>}
 
-          <button className={styles.button} disabled={loading}>
-            {loading ? 'Authenticating...' : 'Sign In'}
-          </button>
+          {/* BUTTON LOGIC */}
+          <div style={{ marginTop: '1rem' }}>
+              {method === 'password' ? (
+                  <button className={styles.button} disabled={loading}>
+                     {loading ? 'Verifying...' : 'Login'}
+                  </button>
+              ) : step === 1 ? (
+                  <button 
+                    type="button" 
+                    onClick={requestOtp} 
+                    className={styles.button} 
+                    disabled={loading || !email}
+                    style={{ background: '#10b981' }} // Green for "Get OTP"
+                   >
+                     {loading ? 'Sending...' : 'Get OTP'}
+                  </button>
+              ) : (
+                  <button className={styles.button} disabled={loading}>
+                     {loading ? 'Verifying...' : 'Verify & Login'}
+                  </button>
+              )}
+          </div>
         </form>
 
         <div className={styles.linkRow}>
-          <Link href="/forgot" className={styles.link}>Forgot password?</Link>
-          <Link href="/register" className={styles.link}>Create account</Link>
+          {method === 'otp' && step === 2 ? (
+             <button onClick={() => setStep(1)} className={styles.link} style={{background:'none', border:'none', cursor:'pointer'}}>
+                 Change Email / Resend
+             </button>
+          ) : (
+             <Link href="/forgot" className={styles.link}>Forgot password?</Link>
+          )}
+          <Link href="/register" className={styles.link}>Register New Account</Link>
         </div>
-
-        <Link href="/" className={styles.backHome}>&larr; Back to Home</Link>
       </div>
     </div>
   );

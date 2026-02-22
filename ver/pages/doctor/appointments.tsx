@@ -2,196 +2,339 @@ import { useState, useEffect } from 'react';
 import DoctorLayout from './DoctorLayout';
 import api from '@/utils/api';
 import styles from '@/styles/Temp.module.css';
-import { FaCalendarPlus, FaClock, FaUser, FaTrash, FaClipboardList } from 'react-icons/fa';
-import Calendar from 'react-calendar';
-import 'react-calendar/dist/Calendar.css';
-
-type Appointment = {
-  id?: number;
-  patientName: string;
-  date: string;
-  time: string;
-  type: string;
-  status: string;
-};
+import { FaEdit, FaCalendarAlt, FaList, FaChevronLeft, FaChevronRight, FaPlus, FaClock, FaUser } from 'react-icons/fa';
 
 export default function AppointmentsPage() {
-  const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [date, setDate] = useState<any>(new Date());
-  const [form, setForm] = useState({ patientName: '', date: '', time: '', type: 'Checkup' });
+  const [viewMode, setViewMode] = useState<'calendar' | 'list'>('calendar');
+  const [appointments, setAppointments] = useState<any[]>([]);
+  const [patients, setPatients] = useState<any[]>([]);
+  const [currentDate, setCurrentDate] = useState(new Date());
+  
+  // Modal State
   const [showModal, setShowModal] = useState(false);
+  const [isEditing, setIsEditing] = useState<number | null>(null); // Track ID if editing
 
-  useEffect(() => { loadApps(); }, []);
+  // Form State
+  const [form, setForm] = useState({
+    patientId: '',
+    patientName: '',
+    email: '', // <--- NEW: Capture Email for auto-login generation
+    date: new Date().toISOString().split('T')[0],
+    time: '09:00',
+    type: 'Checkup'
+  });
 
-  async function loadApps() {
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
     try {
-      const res = await api.get('/api/doctor-features/appointments');
-      setAppointments(res.data);
-    } catch(e) {}
-  }
+      const [aptRes, patRes] = await Promise.all([
+        api.get('/api/appointments'),
+        api.get('/api/doctor-features/patients')
+      ]);
+      setAppointments(aptRes.data);
+      setPatients(patRes.data);
+    } catch (e) { console.error(e); }
+  };
 
-  async function handleSubmit(e: React.FormEvent) {
+  // --- ACTIONS ---
+
+  // Open Modal for Editing
+  const handleEditClick = (apt: any) => {
+    setIsEditing(apt.id);
+    setForm({
+      patientId: apt.patientId || '',
+      patientName: apt.patientName || '',
+      email: '', // Email usually shouldn't be edited here, or fetch if needed
+      date: apt.date,
+      time: apt.time,
+      type: apt.type || 'Checkup'
+    });
+    setShowModal(true);
+  };
+
+  // Open Modal for Creating
+  const handleNewClick = (dateStr?: string) => {
+    setIsEditing(null);
+    setForm({
+      patientId: '',
+      patientName: '',
+      email: '',
+      date: dateStr || new Date().toISOString().split('T')[0],
+      time: '09:00',
+      type: 'Checkup'
+    });
+    setShowModal(true);
+  };
+
+  // Submit Form (Create OR Edit)
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await api.post('/api/doctor-features/appointments', form);
+      // Logic to resolve Patient Name
+      let finalName = form.patientName;
+      if (form.patientId) {
+        const p = patients.find(pt => pt.id === parseInt(form.patientId));
+        if (p) finalName = p.name;
+      }
+
+      if (isEditing) {
+        // --- UPDATE ---
+        await api.put(`/api/appointments/${isEditing}`, {
+           date: form.date,
+           time: form.time,
+           type: form.type
+        });
+        alert('Appointment Updated!');
+      } else {
+        // --- CREATE ---
+        // Pass 'email' so backend can create User & send Temp Password
+        await api.post('/api/appointments', { 
+            ...form, 
+            patientName: finalName 
+        });
+        alert('Appointment Scheduled! (Patient notified if email provided)');
+      }
+
       setShowModal(false);
-      setForm({ patientName: '', date: '', time: '', type: 'Checkup' });
-      loadApps();
-    } catch(e) { alert('Error creating appointment'); }
-  }
-
-  async function handleDelete(id: number) {
-    if(!confirm('Cancel this appointment?')) return;
-    await api.delete(`/api/doctor-features/appointments/${id}`);
-    loadApps();
-  }
-
-  // --- TIMEZONE FIX HERE ---
-  const formatDate = (d: Date) => {
-    // Manually construct YYYY-MM-DD using local time methods
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
+      fetchData();
+    } catch (e) { 
+      console.error(e);
+      alert('Operation failed'); 
+    }
   };
-  
-  const selectedDateStr = formatDate(date instanceof Date ? date : new Date());
 
-  const todaysApps = appointments
-    .filter(a => a.date === selectedDateStr)
-    .sort((a, b) => a.time.localeCompare(b.time));
+  // --- CALENDAR LOGIC ---
+  const getDaysInMonth = (date: Date) => {
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const firstDay = new Date(year, month, 1).getDay();
+    return { daysInMonth, firstDay };
+  };
 
-  const hasAppointment = (d: Date) => {
-    const s = formatDate(d);
-    return appointments.some(a => a.date === s);
+  const changeMonth = (delta: number) => {
+    const newDate = new Date(currentDate);
+    newDate.setMonth(newDate.getMonth() + delta);
+    setCurrentDate(newDate);
+  };
+
+  const renderCalendar = () => {
+    const { daysInMonth, firstDay } = getDaysInMonth(currentDate);
+    const blanks = Array(firstDay).fill(null);
+    const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
+    const allSlots = [...blanks, ...days];
+    const currentMonthStr = currentDate.toISOString().slice(0, 7);
+
+    return (
+      <div className={styles.sectionCard} style={{ padding: 0, overflow: 'hidden' }}>
+        <div className={styles.cardHeader} style={{ padding: '1.5rem', borderBottom: '1px solid var(--color-border)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+             <button onClick={() => changeMonth(-1)} className={styles.iconGhostBtn}><FaChevronLeft /></button>
+             <h3 className={styles.cardTitle} style={{ margin: 0 }}>
+               {currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
+             </h3>
+             <button onClick={() => changeMonth(1)} className={styles.iconGhostBtn}><FaChevronRight /></button>
+          </div>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', textAlign: 'center', background: 'var(--bg-secondary)', borderBottom: '1px solid var(--color-border)' }}>
+          {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
+            <div key={d} style={{ padding: '0.75rem', fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--color-text-secondary)', textTransform: 'uppercase' }}>{d}</div>
+          ))}
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', background: 'var(--color-surface)' }}>
+          {allSlots.map((day, idx) => {
+            if (!day) return <div key={idx} style={{ minHeight: '120px', borderRight: '1px solid var(--color-border)', borderBottom: '1px solid var(--color-border)', background: 'var(--bg-secondary)', opacity: 0.5 }} />;
+            
+            const dayStr = `${currentMonthStr}-${String(day).padStart(2, '0')}`;
+            const dayApts = appointments.filter(a => a.date === dayStr);
+            const isToday = new Date().toISOString().split('T')[0] === dayStr;
+
+            return (
+              <div key={idx} className="group" style={{ 
+                  minHeight: '120px', borderRight: '1px solid var(--color-border)', borderBottom: '1px solid var(--color-border)', 
+                  padding: '0.5rem', position: 'relative', transition: 'background 0.2s'
+              }}>
+                <div style={{ fontSize: '0.9rem', fontWeight: 'bold', marginBottom: '0.5rem', color: isToday ? 'var(--color-primary)' : 'var(--color-text-secondary)', display: 'flex', justifyContent: 'space-between' }}>
+                   <span style={isToday ? { background: 'var(--color-primary)', color: 'white', width: '24px', height: '24px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' } : {}}>{day}</span>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  {dayApts.slice(0, 3).map(apt => (
+                    <div 
+                      key={apt.id} 
+                      onClick={(e) => { e.stopPropagation(); handleEditClick(apt); }} // CLICK TO EDIT
+                      style={{ 
+                        fontSize: '0.75rem', background: 'var(--color-secondary)', color: 'var(--color-primary)', 
+                        padding: '2px 6px', borderRadius: '4px', whiteSpace: 'nowrap', overflow: 'hidden', 
+                        textOverflow: 'ellipsis', fontWeight: 500, cursor: 'pointer' 
+                    }} title={`Edit ${apt.patientName}`}>
+                      {apt.time} {apt.patientName}
+                    </div>
+                  ))}
+                  {dayApts.length > 3 && <div style={{ fontSize: '0.7rem', color: 'var(--color-text-secondary)', paddingLeft: '4px' }}>+{dayApts.length - 3} more</div>}
+                </div>
+
+                <button 
+                  onClick={() => handleNewClick(dayStr)}
+                  className="opacity-0 group-hover:opacity-100 transition-opacity"
+                  style={{
+                    position: 'absolute', top: '8px', right: '8px',
+                    background: 'var(--color-primary)', color: 'white', border: 'none', borderRadius: '4px', 
+                    width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer'
+                  }}
+                >
+                  <FaPlus size={10} />
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
   };
 
   return (
     <DoctorLayout>
-      <div className={styles.sectionHeader}>
-        <div className={styles.headerInfo}>
-          <h2>Schedule & Calendar</h2>
-          <p>Manage patient visits and availability</p>
-        </div>
-        <button 
-          className={styles.addHospitalBtn} 
-          onClick={() => {
-            setForm({ ...form, date: selectedDateStr });
-            setShowModal(true);
-          }}
-        >
-          <FaCalendarPlus /> Add Appointment
-        </button>
-      </div>
-
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '2rem' }}>
+      <div className={styles.overviewSection}>
         
-        {/* LEFT: CALENDAR */}
-        <div>
-          <h3 className={styles.cardTitle} style={{ marginBottom: '1rem' }}>Select Date</h3>
-          <div className={`${styles.calendarWrapper} custom-calendar-root`}>
-            <Calendar 
-              onChange={setDate} 
-              value={date}
-              className="react-calendar"
-              tileContent={({ date, view }) => 
-                view === 'month' && hasAppointment(date) ? (
-                  <div className={styles.dotContainer}><div className={styles.dot}></div></div>
-                ) : null
-              }
-            />
+        <div className={styles.pageHeader} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+          <div>
+            <h1>Schedule Manager</h1>
+            <p>Organize patient visits and availability</p>
           </div>
-        </div>
-
-        {/* RIGHT: LIST */}
-        <div>
-           <h3 className={styles.cardTitle} style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'space-between' }}>
-             {/* Note: This might parse as 00:00 local time, which is correct */}
-             <span>Appointments for {new Date(selectedDateStr).toDateString()}</span>
-             <span style={{ fontSize: '0.9rem', color: 'var(--color-text-secondary)' }}>{todaysApps.length} Total</span>
-           </h3>
-
-           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-             {todaysApps.length === 0 ? (
-               <div className={styles.glassCard} style={{ textAlign: 'center', padding: '3rem 1rem', opacity: 0.7 }}>
-                 <FaClipboardList size={40} style={{ marginBottom: '1rem', opacity: 0.3 }} />
-                 <p>No appointments scheduled for this date.</p>
-                 <button 
-                    className={styles.link} 
-                    style={{ background: 'none', border: 'none', marginTop: '0.5rem', cursor: 'pointer', color: 'var(--color-primary)', fontWeight: 'bold' }}
-                    onClick={() => { setForm({ ...form, date: selectedDateStr }); setShowModal(true); }}
-                 >
-                   + Schedule One
-                 </button>
-               </div>
-             ) : (
-               todaysApps.map(app => (
-                <div key={app.id} className={styles.glassCard} style={{ borderLeft: '5px solid var(--color-primary)', display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div style={{ background: 'var(--color-secondary)', color: 'var(--color-primary)', padding: '4px 10px', borderRadius: '8px', fontWeight: 'bold' }}>
-                      {app.time}
-                    </div>
-                    <button onClick={() => handleDelete(app.id!)} style={{ color: 'var(--color-error)', border: 'none', background: 'none', cursor: 'pointer' }} title="Cancel">
-                      <FaTrash />
-                    </button>
-                  </div>
-                  
-                  <div style={{ fontWeight: '700', fontSize: '1.1rem', marginTop: '5px' }}>
-                    {app.patientName}
-                  </div>
-                  
-                  <div style={{ display: 'flex', gap: '15px', color: 'var(--color-text-secondary)', fontSize: '0.9rem' }}>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><FaUser size={12}/> Patient</span>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><FaClock size={12}/> {app.type}</span>
-                  </div>
-                </div>
-               ))
-             )}
-           </div>
-        </div>
-
-      </div>
-
-      {/* MODAL */}
-      {showModal && (
-        <div className={styles.modalOverlay}>
-          <div className={styles.modalCard}>
-             <div className={styles.modalHeader}>
-              <h3>New Appointment</h3>
-              <button className={styles.closeBtn} onClick={() => setShowModal(false)}>×</button>
+          
+          <div style={{ display: 'flex', gap: '1rem' }}>
+            <div style={{ background: 'var(--bg-secondary)', padding: '4px', borderRadius: '8px', display: 'flex' }}>
+              <button onClick={() => setViewMode('calendar')} style={{ /* ... styles ... */ padding: '6px 12px', background: viewMode === 'calendar' ? 'var(--color-surface)' : 'transparent' }}>
+                <FaCalendarAlt /> Calendar
+              </button>
+              <button onClick={() => setViewMode('list')} style={{ /* ... styles ... */ padding: '6px 12px', background: viewMode === 'list' ? 'var(--color-surface)' : 'transparent' }}>
+                <FaList /> List
+              </button>
             </div>
-            <form onSubmit={handleSubmit} className={styles.entityForm}>
-              <label className={styles.formSectionTitle}>Patient Name</label>
-              <input className={styles.formInput} value={form.patientName} onChange={e => setForm({...form, patientName: e.target.value})} required placeholder="e.g. John Doe" />
-              
-              <div style={{display:'flex', gap:'1rem'}}>
-                <div style={{flex:1}}>
-                  <label className={styles.formSectionTitle}>Date</label>
-                  <input type="date" className={styles.formInput} value={form.date} onChange={e => setForm({...form, date: e.target.value})} required />
-                </div>
-                <div style={{flex:1}}>
-                  <label className={styles.formSectionTitle}>Time</label>
-                  <input type="time" className={styles.formInput} value={form.time} onChange={e => setForm({...form, time: e.target.value})} required />
-                </div>
-              </div>
-
-              <label className={styles.formSectionTitle}>Type</label>
-              <select className={styles.formInput} value={form.type} onChange={e => setForm({...form, type: e.target.value})}>
-                <option>Checkup</option>
-                <option>Surgery</option>
-                <option>Consultation</option>
-                <option>Follow-up</option>
-                <option>Emergency</option>
-              </select>
-
-              <div className={styles.modalActions}>
-                <button type="button" className={styles.cancelBtn} onClick={() => setShowModal(false)}>Cancel</button>
-                <button className={styles.submitBtn}>Confirm Schedule</button>
-              </div>
-            </form>
+            
+            <button className={styles.btnPrimary} onClick={() => handleNewClick()}>
+              <FaPlus /> New Appointment
+            </button>
           </div>
         </div>
-      )}
+
+        <div style={{ marginTop: '2rem' }}>
+            {viewMode === 'calendar' ? renderCalendar() : (
+            <div className={styles.sectionCard}>
+                <div className={styles.cardHeader}>
+                    <h3 className={styles.cardTitle}>Upcoming Appointments</h3>
+                </div>
+                <div className={styles.list}>
+                {appointments.map(a => (
+                    <div key={a.id} className={styles.listRow}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                            <div style={{ background: 'var(--bg-secondary)', padding: '0.5rem', borderRadius: '8px', minWidth: '80px', textAlign: 'center' }}>
+                                <div style={{ fontWeight: 'bold' }}>{a.time}</div>
+                                <div style={{ fontSize: '0.8rem' }}>{a.date}</div>
+                            </div>
+                            <div>
+                                <div className={styles.listTitle}>{a.patientName}</div>
+                                <div className={styles.listMeta}>{a.type} • {a.status}</div>
+                            </div>
+                        </div>
+                        {/* Edit Button */}
+                        <button onClick={() => handleEditClick(a)} className={styles.iconGhostBtn}><FaEdit /></button>
+                    </div>
+                ))}
+                </div>
+            </div>
+            )}
+        </div>
+
+        {/* MODAL */}
+        {showModal && (
+          <div className={styles.modalOverlay}>
+            <div className={styles.modalCard}>
+               <div className={styles.modalHeader}>
+                 <h3 className={styles.cardTitle}>{isEditing ? 'Edit Appointment' : 'Schedule Visit'}</h3>
+                 <button className={styles.closeBtn} onClick={() => setShowModal(false)}>×</button>
+               </div>
+               
+               <form onSubmit={handleSubmit} className={styles.entityForm}>
+                  <div className={styles.formGrid}>
+                    
+                    {/* Only show Patient selection if NOT editing (changing patient usually requires re-booking) */}
+                    {!isEditing && (
+                        <div style={{ gridColumn: '1 / -1' }}>
+                            <label className={styles.formSectionTitle}>Patient</label>
+                            <select 
+                            className={styles.formInput}
+                            value={form.patientId}
+                            onChange={e => setForm({...form, patientId: e.target.value})}
+                            >
+                            <option value="">-- New / Unregistered --</option>
+                            {patients.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                            </select>
+                        </div>
+                    )}
+                    
+                    {/* If New Patient, show Name AND Email inputs */}
+                    {!isEditing && !form.patientId && (
+                        <>
+                            <div style={{ gridColumn: '1 / -1' }}>
+                                <label className={styles.formSectionTitle}>Patient Name</label>
+                                <input 
+                                    className={styles.formInput}
+                                    value={form.patientName} 
+                                    onChange={e => setForm({...form, patientName: e.target.value})}
+                                    required={!form.patientId}
+                                />
+                            </div>
+                            <div style={{ gridColumn: '1 / -1' }}>
+                                <label className={styles.formSectionTitle}>
+                                    Patient Email <span style={{fontSize:'0.8em', color:'var(--color-primary)'}}>(For Login)</span>
+                                </label>
+                                <input 
+                                    type="email"
+                                    className={styles.formInput}
+                                    value={form.email} 
+                                    onChange={e => setForm({...form, email: e.target.value})}
+                                    placeholder="e.g. patient@example.com"
+                                />
+                            </div>
+                        </>
+                    )}
+
+                    <div>
+                        <label className={styles.formSectionTitle}>Date</label>
+                        <input type="date" className={styles.formInput} value={form.date} onChange={e => setForm({...form, date: e.target.value})} required />
+                    </div>
+                    <div>
+                        <label className={styles.formSectionTitle}>Time</label>
+                        <input type="time" className={styles.formInput} value={form.time} onChange={e => setForm({...form, time: e.target.value})} required />
+                    </div>
+                    
+                    <div style={{ gridColumn: '1 / -1' }}>
+                         <label className={styles.formSectionTitle}>Type</label>
+                         <select className={styles.formInput} value={form.type} onChange={e => setForm({...form, type: e.target.value})}>
+                            <option>Checkup</option>
+                            <option>Follow-up</option>
+                            <option>Consultation</option>
+                            <option>Emergency</option>
+                         </select>
+                    </div>
+                  </div>
+
+                  <div className={styles.modalActions}>
+                     <button type="button" className={styles.cancelBtn} onClick={() => setShowModal(false)}>Cancel</button>
+                     <button className={styles.submitBtn}>{isEditing ? 'Update' : 'Confirm'}</button>
+                  </div>
+               </form>
+            </div>
+          </div>
+        )}
+      </div>
     </DoctorLayout>
   );
 }

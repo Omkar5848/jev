@@ -1,35 +1,29 @@
-// ver/pages/dashboard.tsx
 import { useEffect, useMemo, useState } from 'react';
 import Head from 'next/head';
-import Link from 'next/link';
-import styles from '@/styles/Temp.module.css';
 import { useRouter } from 'next/router';
-import { getProfile } from '@/utils/api';
 import dynamic from 'next/dynamic';
-import { FaBars } from 'react-icons/fa6';
-import { FaSignOutAlt } from 'react-icons/fa'; // Import Logout Icon
+import { FaBars, FaSignOutAlt } from 'react-icons/fa'; 
 
-// IMPORT THE SHARED THEME TOGGLE
+// Shared Components & Utils
+import styles from '@/styles/Temp.module.css';
+import { getProfile } from '@/utils/api';
 import ThemeToggle from '@/components/ThemeToggle';
 
-// Sections (tabs)
+// Section Components
 import OverviewSection from './dashboard/OverviewSection';
 import HospitalsSection from './dashboard/HospitalsSection';
 import DoctorsSection from './dashboard/DoctorsSection';
 import DemandsSection from './dashboard/DemandsSection';
 import LocalAgenciesSection from './dashboard/LocalAgenciesSection';
-import VendorsSection from './dashboard/VendorsSection';
-import FreelancersSection from './dashboard/FreelancersSection';
 import ProfileSection from './dashboard/ProfileSection';
+import PatientsSection from './dashboard/PatientsSection'; // <--- NEW IMPORT
 
-// Hooks used by tabs
+// Hooks
 import { useHospitals } from '../hooks/useHospitals';
 import { useDoctors } from '../hooks/useDoctors';
 import { useDemands } from '../hooks/useDemands';
-import { useVendors } from '../hooks/useVendors';
-import { useFreelancers } from '../hooks/useFreelancers';
 
-// Embedded tables for Overview swaps
+// Dynamic Table Imports
 const HospitalTableSection = dynamic(() => import('./dashboard/HospitalTableSection'), { ssr: false });
 const DoctorsTableSection  = dynamic(() => import('./dashboard/DoctorsTableSection'),  { ssr: false });
 const DemandsTableSection  = dynamic(() => import('./dashboard/DemandsTableSection'),  { ssr: false });
@@ -37,123 +31,101 @@ const DemandsTableSection  = dynamic(() => import('./dashboard/DemandsTableSecti
 type User = {
   id: string | number;
   name: string;
-  profession?: string;
+  profession: string;
+  role?: string;
   email?: string;
   avatarUrl?: string | null;
 };
 
-// Keep union with all tabs
-type TabSection = 'overview' | 'profile' | 'hospitals' | 'doctors' | 'demands' | 'local_agencies' | 'vendors' | 'freelancers' ;
+// Update Tab Types
+type TabSection = 'overview' | 'profile' | 'hospitals' | 'doctors' | 'patients' | 'demands' | 'local_agencies';
 
-export default function Dashboard() {
+export default function AdminDashboard() {
   const router = useRouter();
 
-  // User
+  // State
   const [user, setUser] = useState<User | null>(null);
-
-  // Tabs
+  const [loading, setLoading] = useState(true);
+  const [authorized, setAuthorized] = useState(false);
+  
+  // UI State
   const [activeTab, setActiveTab] = useState<TabSection>('overview');
-
-  // Sidebar collapsed state
   const [collapsed, setCollapsed] = useState(false);
-
-  // Search
   const [query, setQuery] = useState('');
-  const [debounced, setDebounced] = useState(query);
+  const [overviewMode, setOverviewMode] = useState<'default' | 'hospitalsTable' | 'doctorsTable' | 'demandsTable'>('default');
+
+  // ==========================================
+  // 1. SECURITY CHECK
+  // ==========================================
   useEffect(() => {
-    const t = setTimeout(() => setDebounced(query.trim()), 300);
-    return () => clearTimeout(t);
-  }, [query]);
+    if (typeof window === 'undefined') return;
 
-  // Load profile
-  useEffect(() => {
-    (async () => {
-      try {
-        const profileData = await getProfile();
-        setUser(profileData);
-      } catch {
-        if (typeof window === 'undefined') return;
-        const cached = localStorage.getItem('auth_user');
-        if (cached) {
-          try {
-            const u = JSON.parse(cached);
-            if (u?.name) { setUser(u); return; }
-          } catch {}
-        }
-        const t = localStorage.getItem('token');
-        if (t) {
-          try {
-            const payload = JSON.parse(atob(t.split('.')[1] || 'e30='));
-            const candidateName =
-              payload.name || payload.username || payload.preferred_username ||
-              (payload.given_name && payload.family_name ? `${payload.given_name} ${payload.family_name}`.trim() : undefined) ||
-              payload.given_name || payload.nickname || payload.email || null;
+    const token = localStorage.getItem('token');
+    const role = localStorage.getItem('role');
 
-            if (candidateName) {
-              setUser({
-                id: payload.sub || payload.id || payload.user_id || payload.uid || candidateName,
-                name: candidateName,
-                profession: payload.profession || payload.role || 'Admin',
-                email: payload.email,
-                avatarUrl: null
-              });
-            }
-          } catch {}
-        }
-      }
-    })();
-  }, []);
+    if (!token) {
+      router.push('/login');
+      return;
+    }
 
-  // Data hooks
-  const hospitals = useHospitals(debounced || '');
-  const doctors   = useDoctors(debounced || '');
-  const demands   = useDemands(debounced || '');
-  const vendors   = useVendors(debounced || '');
-  const freelancers = useFreelancers(debounced || '');
+    if (role !== 'Admin') {
+      if (role === 'Doctor') router.push('/doctor/overview');
+      else router.push('/');
+      return;
+    }
 
-  // Stats for OverviewSection
+    setAuthorized(true);
+    getProfile()
+      .then((u) => {
+        setUser(u as User);
+        setLoading(false);
+      })
+      .catch(() => {
+        localStorage.clear();
+        router.push('/login');
+      });
+  }, [router]);
+
+  // ==========================================
+  // 2. DATA HOOKS
+  // ==========================================
+  const hospitals = useHospitals(query);
+  const doctors = useDoctors(query);
+  const demands = useDemands(query);
+
   const stats = useMemo(() => ({
     totalHospitals: (hospitals.hospitals || []).length,
     totalDoctors:   (doctors.doctors   || []).length,
-    activeDoctors:  (doctors.filtered  || []).filter((d: any) =>
-                     d?.availabilityStatus === 'available' || d?.available === true
-                   ).length,
-    openDemands:    (demands.filtered  || []).filter((d: any) =>
-                     d?.status === 'open' || d?.state === 'open'
-                   ).length
+    activeDoctors:  (doctors.filtered  || []).filter((d: any) => d?.availabilityStatus === 'available').length,
+    openDemands:    (demands.filtered  || []).filter((d: any) => d?.status === 'open').length
   }), [hospitals.hospitals, doctors.doctors, doctors.filtered, demands.filtered]);
 
-  // Overview swap mode
-  const [overviewMode, setOverviewMode] =
-    useState<'default' | 'hospitalsTable' | 'doctorsTable' | 'demandsTable'>('default');
-
-  // Logout Logic
-  function onLogout() {
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('token');
-      localStorage.removeItem('role');
-      localStorage.removeItem('doctorId');
-    }
-    router.push('/login');
-  }
-
-  // Sidebar entries
+  // ==========================================
+  // 3. SIDEBAR CONFIGURATION
+  // ==========================================
   const sidebarItems = [
     { id: 'profile',         name: 'Profile',         icon: '👤' },
     { id: 'overview',        name: 'Overview',        icon: '🗂️' },
     { id: 'hospitals',       name: 'Hospitals',       icon: '🏥' },
     { id: 'doctors',         name: 'Doctors',         icon: '👨‍⚕️' },
+    { id: 'patients',        name: 'Patients',        icon: '🤕' }, // <--- NEW TAB ADDED
     { id: 'demands',         name: 'Demands',         icon: '📄' },
     { id: 'local_agencies',  name: 'Local Agencies',  icon: '🏢' },
-   
   ] as const;
+
+  const handleLogout = () => {
+    localStorage.clear();
+    router.push('/login');
+  };
+
+  if (!authorized || loading) {
+    return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>Verifying Admin Access...</div>;
+  }
 
   return (
     <>
       <Head>
-        <title>Jeevak - Healthcare Dashboard</title>
-        <meta name="description" content="Healthcare Management Dashboard" />
-        <meta name="color-scheme" content="light dark" />
+        <title>Admin Dashboard | Jeevak</title>
       </Head>
 
       <div className={styles.healthcareDashboard}>
@@ -162,13 +134,12 @@ export default function Dashboard() {
           <div className={styles.headerContent}>
             
             <div className={styles.headerLogo}>
-              <div className={styles.logoIcon}>H</div>
-              <span className={styles.logoText}>Jeevak</span>
+              <div className={styles.logoIcon}>J</div>
+              <span className={styles.logoText}>Jeevak <small style={{fontSize: '0.6em', opacity: 0.8}}>ADMIN</small></span>
               
               <button
                 type="button"
                 onClick={() => setCollapsed((v) => !v)}
-                aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
                 className={styles.iconBtn}
                 style={{ marginLeft: '1rem', background: 'transparent', boxShadow: 'none' }}
               >
@@ -181,36 +152,23 @@ export default function Dashboard() {
                 <span className={styles.searchIcon}>🔍</span>
                 <input
                   type="text"
-                  placeholder="Search..."
+                  placeholder="Search system..."
                   className={styles.searchInput}
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                 />
               </div>
 
-              <button className={styles.iconBtn}><span>🔔</span></button>
-
               <ThemeToggle />
 
               <div className={styles.userProfile}>
                 <div className={styles.userAvatar}>
-                  {user?.avatarUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={user.avatarUrl}
-                      alt="Avatar"
-                      style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }}
-                    />
-                  ) : (
-                    (user?.name ? user.name.charAt(0) : 'U').toUpperCase()
-                  )}
+                  {user?.name ? user.name.charAt(0).toUpperCase() : 'A'}
                 </div>
                 <div className={styles.userInfo}>
-                  <div className={styles.userName}>{user?.name || 'User'}</div>
-                  <div className={styles.userRole}>{user?.profession || 'Admin'}</div>
+                  <div className={styles.userName}>{user?.name || 'Administrator'}</div>
+                  <div className={styles.userRole}>System Admin</div>
                 </div>
-                {/* Replaced Logout Button with Link to Settings only */}
-                <Link href="/settings" className={styles.settingsBtn}>Settings</Link>
               </div>
             </div>
           </div>
@@ -221,7 +179,6 @@ export default function Dashboard() {
           {/* Sidebar */}
           <aside
             className={styles.sidebar}
-            aria-label="Primary"
             style={{
               width: collapsed ? '5rem' : '16rem',
               minWidth: collapsed ? '5rem' : '16rem',
@@ -229,7 +186,6 @@ export default function Dashboard() {
             }}
           >
             <nav className={styles.navMenu}>
-              {/* Navigation Items */}
               {sidebarItems.map((item) => (
                 <button
                   key={item.id}
@@ -238,26 +194,18 @@ export default function Dashboard() {
                     if (item.id === 'overview') setOverviewMode('default');
                   }}
                   className={`${styles.navItem} ${activeTab === item.id ? styles.active : ''} ${collapsed ? 'justify-center px-2' : ''}`}
-                  aria-current={activeTab === item.id ? 'page' : undefined}
-                  title={item.name}
                 >
-                  <span className={styles.navIcon} role="img" aria-label={item.name}>
-                    {item.icon}
-                  </span>
+                  <span className={styles.navIcon}>{item.icon}</span>
                   {!collapsed && <span>{item.name}</span>}
                 </button>
               ))}
 
-              {/* LOGOUT BUTTON - Pushed to bottom */}
               <button
-                onClick={onLogout}
-                className={`${styles.navItem} ${collapsed ? 'justify-center px-2' : ''}`}
-                style={{ marginTop: 'auto', color: 'var(--color-error)' }}
-                title="Logout"
+                onClick={handleLogout}
+                className={styles.navItem}
+                style={{ marginTop: 'auto', color: '#ef4444' }}
               >
-                <span className={styles.navIcon} style={{ fontSize: '1.2rem' }}>
-                  <FaSignOutAlt />
-                </span>
+                <span className={styles.navIcon}><FaSignOutAlt /></span>
                 {!collapsed && <span>Logout</span>}
               </button>
             </nav>
@@ -265,20 +213,17 @@ export default function Dashboard() {
 
           {/* Main Content */}
           <main className={styles.mainContent}>
+            
+            {/* OVERVIEW TAB */}
             {activeTab === 'overview' && (
               overviewMode === 'default' ? (
                 <OverviewSection
-                  stats={{
-                    totalHospitals: stats.totalHospitals,
-                    activeDoctors:  stats.activeDoctors,
-                    totalDoctors:   stats.totalDoctors,
-                    openDemands:    stats.openDemands
-                  }}
-                  onNavigateTab={(tab: 'hospitals' | 'doctors' | 'demands') => {
-                    if (tab === 'hospitals') { setOverviewMode('hospitalsTable'); return; }
-                    if (tab === 'doctors') { setOverviewMode('doctorsTable'); return; }
-                    if (tab === 'demands') { setOverviewMode('demandsTable'); return; }
-                    setActiveTab(tab as TabSection);
+                  stats={stats}
+                  onNavigateTab={(tab: any) => {
+                    if (tab === 'hospitals') setOverviewMode('hospitalsTable');
+                    else if (tab === 'doctors') setOverviewMode('doctorsTable');
+                    else if (tab === 'demands') setOverviewMode('demandsTable');
+                    else setActiveTab(tab);
                   }}
                 />
               ) : overviewMode === 'hospitalsTable' ? (
@@ -290,8 +235,10 @@ export default function Dashboard() {
               )
             )}
 
+            {/* PROFILE TAB */}
             {activeTab === 'profile' && <ProfileSection />}
 
+            {/* HOSPITALS TAB */}
             {activeTab === 'hospitals' && (
               <HospitalsSection
                 filtered={hospitals.filtered}
@@ -306,21 +253,15 @@ export default function Dashboard() {
               />
             )}
 
+            {/* DOCTORS TAB */}
             {activeTab === 'doctors' && (
-              <DoctorsSection
-                filtered={doctors.filtered}
-                form={doctors.form}
-                editingId={doctors.editingId}
-                saving={doctors.saving}
-                onChange={doctors.onChange}
-                onSubmit={doctors.onSubmit}
-                onEdit={doctors.onEdit}
-                onDelete={doctors.onDelete}
-                setEditingId={doctors.setEditingId}
-                setForm={doctors.setForm}
-              />
+              <DoctorsSection/>
             )}
 
+            {/* PATIENTS TAB (NEW) */}
+            {activeTab === 'patients' && <PatientsSection />}
+
+            {/* DEMANDS TAB */}
             {activeTab === 'demands' && (
               <DemandsSection
                 filtered={demands.filtered}
@@ -334,9 +275,8 @@ export default function Dashboard() {
               />
             )}
 
+            {/* LOCAL AGENCIES TAB */}
             {activeTab === 'local_agencies' && <LocalAgenciesSection />}
-
-
             
           </main>
         </div>

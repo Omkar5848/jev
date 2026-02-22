@@ -4,30 +4,38 @@ import auth from '../middleware/authMiddleware.js';
 import Patient from '../models/Patient.js';
 import Message from '../models/Message.js';
 import User from '../models/User.js';
-import Appointment from '../models/Appointment.js'; // IMPORT NEW MODEL
+import Doctor from '../models/Doctor.js';
+import Appointment from '../models/Appointment.js';
+import { createPatient, getMyPatients, getAllPatients, updatePatient, deletePatient } from '../controllers/patientController.js';
+import { updateAppointment } from '../controllers/appointmentController.js';
 
 const router = express.Router();
+
+// ================= HELPER FUNCTION =================
+async function getDoctorId(userId) {
+  const user = await User.findByPk(userId);
+  if (!user) return null;
+  const doctor = await Doctor.findOne({ where: { email: user.email } });
+  return doctor ? doctor.id : null;
+}
 
 // ================= OVERVIEW DASHBOARD =================
 router.get('/overview', auth, async (req, res) => {
   try {
-    const doctorId = req.user.id;
+    const doctorId = await getDoctorId(req.user.id);
+    if (!doctorId) return res.status(404).json({ error: 'Doctor profile not found' });
+
     const today = new Date().toISOString().split('T')[0];
 
     // 1. Count Patients
-    const patientsCount = await Patient.count({ 
-      where: { doctorId } 
-    });
+    const patientsCount = await Patient.count({ where: { doctorId } });
 
-    // 2. Count Total Unread Messages
+    // 2. Count Unread Messages
     const unreadMessages = await Message.count({
-      where: { 
-        receiverId: doctorId,
-        isRead: false
-      }
+      where: { receiverId: req.user.id, isRead: false }
     });
 
-    // 3. Get Today's Appointments (Real Data)
+    // 3. Get Today's Appointments
     const todayAppointments = await Appointment.findAll({
       where: { doctorId, date: today },
       order: [['time', 'ASC']]
@@ -35,9 +43,9 @@ router.get('/overview', auth, async (req, res) => {
 
     res.json({
       patientsCount,
-      appointmentsCount: todayAppointments.length, // Send real count
+      appointmentsCount: todayAppointments.length,
       unreadMessages,
-      todayAppointments // Send the list for the bottom section
+      todayAppointments
     });
   } catch (e) {
     console.error(e);
@@ -45,17 +53,16 @@ router.get('/overview', auth, async (req, res) => {
   }
 });
 
-// ================= APPOINTMENT ROUTES (NEW) =================
+// ================= APPOINTMENT ROUTES =================
 
 // GET All Future Appointments
 router.get('/appointments', auth, async (req, res) => {
   try {
+    const doctorId = await getDoctorId(req.user.id);
+    if (!doctorId) return res.status(404).json({ error: 'Doctor profile not found' });
+
     const apps = await Appointment.findAll({
-      where: { 
-        doctorId: req.user.id,
-        // Optional: Filter for today onwards only?
-        // date: { [Op.gte]: new Date().toISOString().split('T')[0] } 
-      },
+      where: { doctorId },
       order: [['date', 'ASC'], ['time', 'ASC']]
     });
     res.json(apps);
@@ -65,7 +72,27 @@ router.get('/appointments', auth, async (req, res) => {
 // POST Create Appointment
 router.post('/appointments', auth, async (req, res) => {
   try {
-    const app = await Appointment.create({ ...req.body, doctorId: req.user.id });
+    const doctorId = await getDoctorId(req.user.id);
+    if (!doctorId) return res.status(404).json({ error: 'Doctor profile not found' });
+
+    const app = await Appointment.create({ 
+      ...req.body, 
+      doctorId: doctorId 
+    });
+    res.json(app);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// PUT Update Appointment (NEW)
+// Allows editing date, time, status, etc.
+router.put('/appointments/:id', auth, async (req, res) => {
+  try {
+    const doctorId = await getDoctorId(req.user.id);
+    const app = await Appointment.findOne({ where: { id: req.params.id, doctorId } });
+    
+    if (!app) return res.status(404).json({ message: 'Appointment not found' });
+    
+    await app.update(req.body);
     res.json(app);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -73,51 +100,28 @@ router.post('/appointments', auth, async (req, res) => {
 // DELETE Appointment
 router.delete('/appointments/:id', auth, async (req, res) => {
   try {
-    await Appointment.destroy({ where: { id: req.params.id, doctorId: req.user.id } });
+    const doctorId = await getDoctorId(req.user.id);
+    await Appointment.destroy({ where: { id: req.params.id, doctorId } });
     res.json({ message: 'Deleted' });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 
-// ================= PATIENT ROUTES =================
+// ================= PATIENT ROUTES (Using Controller) =================
+// These now use the robust logic we created in patientController.js
+// which handles the email sending and user creation.
 
-router.get('/patients', auth, async (req, res) => {
-  try {
-    const patients = await Patient.findAll({ 
-      where: { doctorId: req.user.id },
-      order: [['createdAt', 'DESC']] 
-    });
-    res.json(patients);
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
+router.get('/patients', auth, getMyPatients);
+router.post('/patients', auth, createPatient); // Uses the logic with Mailer
+router.put('/patients/:id', auth, updatePatient);
+router.delete('/patients/:id', auth, deletePatient);
 
-router.post('/patients', auth, async (req, res) => {
-  try {
-    const patient = await Patient.create({ ...req.body, doctorId: req.user.id });
-    res.json(patient);
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
-router.put('/patients/:id', auth, async (req, res) => {
-  try {
-    const p = await Patient.findOne({ where: { id: req.params.id, doctorId: req.user.id } });
-    if (!p) return res.status(404).json({ message: 'Patient not found' });
-    await p.update(req.body);
-    res.json(p);
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
-router.delete('/patients/:id', auth, async (req, res) => {
-  try {
-    await Patient.destroy({ where: { id: req.params.id, doctorId: req.user.id } });
-    res.json({ message: 'Deleted' });
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
+// ADMIN: Get All Patients
+router.get('/admin/patients', auth, getAllPatients);
 
 
-// ================= MESSAGING ROUTES =================
+// ================= MESSAGING ROUTES (Unchanged) =================
 
-// GET Contacts (With Unread Counts)
 router.get('/messages/contacts', auth, async (req, res) => {
   try {
     const users = await User.findAll({
@@ -128,14 +132,9 @@ router.get('/messages/contacts', auth, async (req, res) => {
       attributes: ['id', 'name', 'profession', 'avatarUrl']
     });
 
-    // Calculate unread count per contact
     const contactsWithCount = await Promise.all(users.map(async (user) => {
       const count = await Message.count({
-        where: { 
-          senderId: user.id, 
-          receiverId: req.user.id, 
-          isRead: false 
-        }
+        where: { senderId: user.id, receiverId: req.user.id, isRead: false }
       });
       return { ...user.toJSON(), unreadCount: count };
     }));
@@ -144,7 +143,6 @@ router.get('/messages/contacts', auth, async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// GET Messages (And Mark as Read)
 router.get('/messages/:userId', auth, async (req, res) => {
   try {
     const msgs = await Message.findAll({
@@ -157,13 +155,8 @@ router.get('/messages/:userId', auth, async (req, res) => {
       order: [['createdAt', 'ASC']]
     });
 
-    // Mark these messages as READ now that we've fetched them
     await Message.update({ isRead: true }, {
-      where: { 
-        senderId: req.params.userId, 
-        receiverId: req.user.id, 
-        isRead: false 
-      }
+      where: { senderId: req.params.userId, receiverId: req.user.id, isRead: false }
     });
 
     res.json(msgs);

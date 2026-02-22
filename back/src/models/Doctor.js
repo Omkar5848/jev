@@ -1,11 +1,13 @@
+// back/src/models/Doctor.js
 import { DataTypes } from 'sequelize';
 import sequelize from '../config/db.js';
 
-
 const Doctor = sequelize.define('Doctor', {
+  // Custom ID (e.g. "DOC-1001")
   doctorCode: { type: DataTypes.STRING, unique: true, allowNull: true },
+  
   firstName: { type: DataTypes.STRING, allowNull: false },
-  lastName: { type: DataTypes.STRING, allowNull: false },
+  lastName: { type: DataTypes.STRING, allowNull: true }, // Changed to true just in case
   gender: { type: DataTypes.ENUM('male','female','other'), allowNull: true },
   dob: { type: DataTypes.DATEONLY, allowNull: true },
   email: { type: DataTypes.STRING, allowNull: true },
@@ -34,6 +36,33 @@ const Doctor = sequelize.define('Doctor', {
   patientPanelCount: { type: DataTypes.INTEGER, allowNull: true, defaultValue: 0 },
   emrSystemId: { type: DataTypes.STRING, allowNull: true },
   notes: { type: DataTypes.TEXT, allowNull: true }
-}, { tableName: 'Doctors' });
+}, { 
+  tableName: 'Doctors',
+  hooks: {
+    // AUTOMATIC ID GENERATION HOOK
+    beforeCreate: async (doctor) => {
+      if (!doctor.doctorCode) {
+        // 1. Find the last doctor created
+        const lastDoctor = await Doctor.findOne({
+          order: [['createdAt', 'DESC']],
+          attributes: ['doctorCode']
+        });
+
+        // 2. Determine the next number
+        let nextNumber = 1001; // Start from 1001
+        if (lastDoctor && lastDoctor.doctorCode) {
+          const parts = lastDoctor.doctorCode.split('-');
+          const lastNum = parseInt(parts[1], 10);
+          if (!isNaN(lastNum)) {
+            nextNumber = lastNum + 1;
+          }
+        }
+
+        // 3. Set the new code
+        doctor.doctorCode = `DOC-${nextNumber}`;
+      }
+    }
+  }
+});
 
 export default Doctor;

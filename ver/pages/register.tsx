@@ -1,145 +1,164 @@
-import { FormEvent, useState } from 'react';
-import styles from '@/styles/Auth.module.css';
+import { useState, FormEvent } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import api from '@/utils/api';
-
-type AuthUser = {
-  id: number | string;
-  name: string;
-  email: string;
-  profession?: string;
-  role?: string;
-  doctorId?: number | string | null;
-};
+import styles from '@/styles/Auth.module.css';
+import ThemeToggle from '@/components/ThemeToggle';
 
 export default function Register() {
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirm, setConfirm] = useState('');
-  const [profession, setProfession] =
-    useState<'doctor' | 'nurse' | 'technician' | 'receptionist'>('doctor');
-  const [loading, setLoading] = useState(false);
-  const [msg, setMsg] = useState<string | undefined>(undefined);
-  const [error, setError] = useState<string | undefined>(undefined);
   const router = useRouter();
+  
+  // Form State
+  const [form, setForm] = useState({
+    name: '',
+    email: '',
+    password: '',
+    profession: 'User', // Default role
+    adminKey: ''        // Only used if profession is Admin
+  });
 
-  async function onSubmit(e: FormEvent) {
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  // Handle Input Changes
+  const handleChange = (field: string, value: string) => {
+    setForm(prev => ({ ...prev, [field]: value }));
+  };
+
+  // Submit Handler
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    setError(undefined);
-    setMsg(undefined);
-
-    if (password !== confirm) {
-      setError('Passwords do not match');
-      return;
-    }
-
+    setError('');
     setLoading(true);
+
     try {
-      const res = await api.post('/api/auth/register', {
-        name, email, password, profession
-      });
+      // Send registration request
+      const { data } = await api.post('/api/auth/register', form);
+      
+      // Auto-login logic
+      if (data.token && typeof window !== 'undefined') {
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('role', data.user.role);
+        
+        if (data.user.doctorId) {
+          localStorage.setItem('doctorId', String(data.user.doctorId));
+        }
 
-      const token: string | undefined = res.data?.token;
-      const user: AuthUser | undefined = res.data?.user;
-
-      if (typeof window !== 'undefined' && token) {
-        localStorage.setItem('token', token);
-      }
-      if (user?.role) localStorage.setItem('role', user.role);
-      if (user?.doctorId != null) localStorage.setItem('doctorId', String(user.doctorId));
-
-      if (token) {
-        // Auto-login path with role-based routing
-        if (user?.role === 'Doctor') {
-          setMsg('Registered successfully. Redirecting to doctor dashboard...');
+        // Redirect based on Role
+        if (data.user.role === 'Admin') {
+          router.push('/dashboard');
+        } else if (data.user.role === 'Doctor') {
           router.push('/doctor/overview');
         } else {
-          setMsg('Registered successfully. Redirecting...');
-          router.push('/dashboard');
+          router.push('/');
         }
-        return;
       }
-
-      // Fallback: no token returned -> go to login
-      setMsg('Registered! You can now login.');
-      setTimeout(() => router.push('/login'), 800);
     } catch (err: any) {
-      // Clear any stale keys on failure
-      localStorage.removeItem('token');
-      localStorage.removeItem('role');
-      localStorage.removeItem('doctorId');
-
-      setError(
-        err?.response?.data?.error ||
-        err?.response?.data?.message ||
-        err?.message ||
-        'Registration failed'
-      );
+      setError(err.response?.data?.message || 'Registration failed. Please try again.');
     } finally {
       setLoading(false);
     }
-  }
+  };
 
   return (
     <div className={styles.container}>
+      <div style={{ position: 'absolute', top: 20, right: 20 }}>
+        <ThemeToggle />
+      </div>
+
       <div className={styles.card}>
-        <h1 className="logo">Jeevak</h1>
-        <form onSubmit={onSubmit}>
-          <input
-            className={styles.input}
-            placeholder="Name"
-            value={name}
-            onChange={e => setName(e.target.value)}
-            required
-          />
-          <input
-            className={styles.input}
-            placeholder="Email"
-            type="email"
-            value={email}
-            onChange={e => setEmail(e.target.value)}
-            required
-          />
-          <input
-            className={styles.input}
-            placeholder="Password"
-            type="password"
-            value={password}
-            onChange={e => setPassword(e.target.value)}
-            required
-          />
-          <input
-            className={styles.input}
-            placeholder="Confirm Password"
-            type="password"
-            value={confirm}
-            onChange={e => setConfirm(e.target.value)}
-            required
-          />
-          <select
-            className={styles.input}
-            value={profession}
-            onChange={e => setProfession(e.target.value as any)}
-          >
-            <option value="doctor">Doctor</option>
-            <option value="nurse">Nurse</option>
-            <option value="technician">Technician</option>
-            <option value="receptionist">Receptionist</option>
-          </select>
+        <div className={styles.header}>
+          <h1 className={styles.logo}>Jeevak</h1>
+          <p className={styles.subtitle}>Create your account</p>
+        </div>
+
+        <form onSubmit={handleSubmit} className={styles.form}>
+          {/* Name Field */}
+          <div className={styles.inputGroup}>
+            <label className={styles.label}>Full Name</label>
+            <input 
+              className={styles.input}
+              type="text"
+              required
+              value={form.name}
+              onChange={e => handleChange('name', e.target.value)}
+              placeholder="John Doe"
+            />
+          </div>
+
+          {/* Email Field */}
+          <div className={styles.inputGroup}>
+            <label className={styles.label}>Email Address</label>
+            <input 
+              className={styles.input}
+              type="email"
+              required
+              value={form.email}
+              onChange={e => handleChange('email', e.target.value)}
+              placeholder="name@example.com"
+            />
+          </div>
+
+          {/* Password Field */}
+          <div className={styles.inputGroup}>
+            <label className={styles.label}>Password</label>
+            <input 
+              className={styles.input}
+              type="password"
+              required
+              value={form.password}
+              onChange={e => handleChange('password', e.target.value)}
+              placeholder="••••••••"
+            />
+          </div>
+
+          {/* Role Selection */}
+          <div className={styles.inputGroup}>
+            <label className={styles.label}>Register As</label>
+            <select 
+              className={styles.input}
+              value={form.profession}
+              onChange={e => handleChange('profession', e.target.value)}
+            >
+              <option value="User">Patient / User</option>
+              <option value="Doctor">Doctor</option>
+              <option value="Nurse">Nurse</option>
+              <option value="Technician">Lab Technician</option>
+              <option value="Admin">Administrator</option>
+            </select>
+          </div>
+
+          {/* Conditional Admin Key Field */}
+          {form.profession === 'Admin' && (
+            <div className={styles.inputGroup}>
+              <label className={styles.label} style={{ color: '#ef4444' }}>
+                Admin Secret Key <span style={{fontSize: '0.8em'}}>(Required)</span>
+              </label>
+              <input 
+                className={styles.input}
+                type="password"
+                required
+                placeholder="Enter Admin Key"
+                value={form.adminKey}
+                onChange={e => handleChange('adminKey', e.target.value)}
+                style={{ borderColor: '#ef4444' }}
+              />
+            </div>
+          )}
+
+          {error && <div className={styles.error}>{error}</div>}
 
           <button className={styles.button} disabled={loading}>
-            {loading ? 'Registering...' : 'Register'}
+            {loading ? 'Creating Account...' : 'Register'}
           </button>
         </form>
 
-        {msg && <p className={styles.success}>{msg}</p>}
-        {error && <p className={styles.error}>{error}</p>}
-
-        <p className={styles.linkRow} style={{ justifyContent: 'center' }}>
-          <Link href="/login">Already registered? Login</Link>
-        </p>
+        <div className={styles.linkRow}>
+          <span style={{ color: 'var(--text-secondary)' }}>Already have an account? </span>
+          <Link href="/login" className={styles.link} style={{ marginLeft: '5px' }}>
+            Sign in
+          </Link>
+        </div>
       </div>
     </div>
   );
