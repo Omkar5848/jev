@@ -24,7 +24,7 @@ export const createPatient = async (req, res) => {
     // --- PERMISSION CHECK ---
     // If Admin: Can add patients (optionally assign a doctorId if passed in body)
     if (req.user.role === 'Admin' || req.user.profession === 'Admin') {
-        doctorId = req.body.doctorId || null;
+       doctorId = req.body.doctorId || await getDoctorId(req.user.id) || null;
     } 
     // If Doctor: Must have a valid doctor profile
     else {
@@ -138,10 +138,7 @@ export const getAllPatients = async (req, res) => {
         model: Patient,
         as: 'patientProfile', 
         required: false,      
-        include: [{
-            model: Doctor,
-            attributes: ['firstName', 'lastName']
-        }]
+        include: [{ model: Doctor }] // FIX: Removed strict attributes that cause crashes
       }],
       order: [['createdAt', 'DESC']]
     });
@@ -149,47 +146,47 @@ export const getAllPatients = async (req, res) => {
     // Step B: Get Doctor-Created Patients who have NO User Account
     const medicalOnlyPatients = await Patient.findAll({
       where: { userId: null },
-      include: [{ model: Doctor, attributes: ['firstName', 'lastName'] }]
+      include: [{ model: Doctor }] // FIX: Removed strict attributes
     });
 
     // Step C: Normalize & Merge Data
     const results = [
-      // 1. Map Registered Users
       ...registeredUsers.map(u => {
         const p = u.patientProfile || {}; 
+        const docName = p.Doctor ? (p.Doctor.firstName || p.Doctor.name || 'Assigned') : 'Unassigned';
         return {
           id: u.id,
           source: 'Registered',
-          name: u.name,
+          name: u.name || 'Unknown',
           email: u.email,
           age: p.age || '-',
           gender: p.gender || '-',
           phone: p.phone || '-',
           diagnosis: p.diagnosis || 'N/A',
           status: p.status || 'Active', 
-          doctorName: p.Doctor ? `Dr. ${p.Doctor.firstName}` : 'Unassigned',
+          doctorName: docName === 'Unassigned' ? docName : `Dr. ${docName}`,
           createdAt: u.createdAt
         };
       }),
-      // 2. Map Doctor-Created Patients
-      ...medicalOnlyPatients.map(p => ({
-        id: p.id,
-        source: 'Doctor Created',
-        name: p.name,
-        email: p.email || '-',
-        age: p.age,
-        gender: p.gender,
-        phone: p.phone,
-        diagnosis: p.diagnosis,
-        status: p.status,
-        doctorName: p.Doctor ? `Dr. ${p.Doctor.firstName}` : 'Unknown',
-        createdAt: p.createdAt
-      }))
+      ...medicalOnlyPatients.map(p => {
+        const docName = p.Doctor ? (p.Doctor.firstName || p.Doctor.name || 'Assigned') : 'Unassigned';
+        return {
+          id: p.id,
+          source: 'Doctor Created',
+          name: p.name || 'Unknown',
+          email: p.email || '-',
+          age: p.age,
+          gender: p.gender,
+          phone: p.phone,
+          diagnosis: p.diagnosis,
+          status: p.status,
+          doctorName: docName === 'Unassigned' ? docName : `Dr. ${docName}`,
+          createdAt: p.createdAt
+        };
+      })
     ];
 
-    // Sort merged list by newest first
     results.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-
     res.json(results);
   } catch (error) {
     console.error("Get All Patients Error:", error);

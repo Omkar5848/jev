@@ -72,11 +72,11 @@ export default function PatientsSection() {
     setSubmitting(true);
     try {
       // Ensure you have this route in your backend (e.g., in doctorRoutes.js: router.post('/patients', createPatient))
-      await api.post('/api/patients', form); 
+      await api.post('/api/doctor-features/patients', form); 
       
       alert('Patient added successfully!' + (form.email ? ' Login instructions sent to email.' : ''));
       setShowModal(false);
-      setForm(initialForm);
+      setForm(initialForm); 
       fetchPatients(true); // Refresh list
     } catch (error: any) {
       alert(error.response?.data?.message || 'Failed to add patient');
@@ -148,7 +148,7 @@ export default function PatientsSection() {
       ) : filtered.length === 0 ? (
          <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--color-text-secondary)' }}>No patients found.</div>
       ) : (
-        <div style={{ 
+        <div style={{   
           display: 'grid', 
           gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', 
           gap: '1.5rem' 
@@ -169,11 +169,11 @@ export default function PatientsSection() {
                       color: p.source === 'Registered' ? '#0284c7' : '#4b5563',
                       display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', fontWeight: 'bold'
                     }}>
-                      {p.name.charAt(0).toUpperCase()}
+                      {(p.name || 'U').charAt(0).toUpperCase()}
                     </div>
                     <div>
-                        <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: 'var(--color-text)' }}>
-                        {p.name}
+                       <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: 'var(--color-text)' }}>
+                        {p.name || 'Unknown Patient'}
                         </h4>
                         <div style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '5px' }}>
                             {p.source === 'Registered' ? <FaGlobe size={10} /> : <FaUser size={10} />}

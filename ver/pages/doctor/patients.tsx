@@ -61,7 +61,7 @@ export default function PatientsPage() {
   async function loadPatients() {
     try {
       // Correct endpoint for "My Patients"
-      const res = await api.get('/api/doctor-features/my-patients');
+      const res = await api.get('/api/doctor-features/patients');
       setPatients(res.data || []);
       setLoading(false);
     } catch (e) { 
@@ -190,7 +190,7 @@ export default function PatientsPage() {
       {/* --- ADD / EDIT MODAL --- */}
       {showModal && (
         <div className={styles.modalOverlay}>
-          <div className={styles.modalCard}>
+          <div className={styles.modalCard} style={{ maxHeight: '90vh', overflowY: 'auto' }}>
             <div className={styles.modalHeader}>
               <h3 className={styles.cardTitle}>{isEditing ? 'Edit Patient' : 'Add New Patient'}</h3>
               <button className={styles.closeBtn} onClick={() => setShowModal(false)}>×</button>

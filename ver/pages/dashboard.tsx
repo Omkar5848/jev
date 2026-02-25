@@ -6,7 +6,7 @@ import { FaBars, FaSignOutAlt } from 'react-icons/fa';
 
 // Shared Components & Utils
 import styles from '@/styles/Temp.module.css';
-import { getProfile } from '@/utils/api';
+import api, { getProfile } from '@/utils/api';                                        
 import ThemeToggle from '@/components/ThemeToggle';
 
 // Section Components
@@ -93,12 +93,22 @@ export default function AdminDashboard() {
   const doctors = useDoctors(query);
   const demands = useDemands(query);
 
+  const [totalPatients, setTotalPatients] = useState(0);
+  useEffect(() => {
+    if (authorized) {
+      api.get('/api/doctor-features/admin/patients')
+        .then(res => setTotalPatients(res.data?.length || 0))
+        .catch(e => console.error("Failed to load patient count", e));
+    }
+  }, [authorized]);
+
   const stats = useMemo(() => ({
     totalHospitals: (hospitals.hospitals || []).length,
     totalDoctors:   (doctors.doctors   || []).length,
     activeDoctors:  (doctors.filtered  || []).filter((d: any) => d?.availabilityStatus === 'available').length,
-    openDemands:    (demands.filtered  || []).filter((d: any) => d?.status === 'open').length
-  }), [hospitals.hospitals, doctors.doctors, doctors.filtered, demands.filtered]);
+    openDemands:    (demands.filtered  || []).filter((d: any) => d?.status === 'open').length,
+    totalPatients:  totalPatients
+  }), [hospitals.hospitals, doctors.doctors, doctors.filtered, demands.filtered, totalPatients]);
 
   // ==========================================
   // 3. SIDEBAR CONFIGURATION

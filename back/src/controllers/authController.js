@@ -150,6 +150,9 @@ export const loginUser = async (req, res) => {
         user.role = 'Admin';
         user.profession = 'Admin';
         await user.save();
+        
+        // FIX: Force user data reload to ensure the new token signs as an Admin
+        await user.reload(); 
     }
 
     // Link doctor if applicable

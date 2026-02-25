@@ -1,8 +1,5 @@
 import styles from '@/styles/Temp.module.css';
 import Link from 'next/link';
-import HospitalTableSection from './HospitalTableSection';
-import DoctorsTableSection from './DoctorsTableSection';
-import DemandsTableSection from './DemandsTableSection';
 
 type Props = {
   stats: {
@@ -10,14 +7,13 @@ type Props = {
     activeDoctors: number;
     totalDoctors: number;
     openDemands: number;
+    totalPatients: number; // NEW: Added to props
   };
-  onNavigateTab?: (tab: 'hospitals' | 'doctors' | 'demands') => void;
+  onNavigateTab?: (tab: 'hospitals' | 'doctors' | 'demands' | 'patients') => void; // NEW: Added patients to valid tabs
 };
 
 export default function OverviewSection({ stats, onNavigateTab }: Props) {
-  // --- SAFETY CHECK (Prevents Build Crash) ---
   if (!stats) return null;
-  // -------------------------------------------
 
   return (
     <div className={styles.overviewSection}>
@@ -27,6 +23,21 @@ export default function OverviewSection({ stats, onNavigateTab }: Props) {
       </div>
 
       <div className={styles.statsGrid}>
+        
+        {/* NEW PATIENT STAT CARD */}
+        <button
+          type="button"
+          className={styles.statCard}
+          onClick={() => onNavigateTab?.('patients')}
+          aria-label="Go to Patients"
+        >
+          <div className={styles.statHeader}>
+            <div className={styles.statIcon} style={{background: '#dcfce7', color: '#16a34a'}}>🤕</div>
+          </div>
+          <div className={styles.statValue}>{stats.totalPatients || 0}</div>
+          <div className={styles.statLabel}>Total Patients</div>
+        </button>
+
         <button
           type="button"
           className={styles.statCard}
@@ -65,6 +76,7 @@ export default function OverviewSection({ stats, onNavigateTab }: Props) {
           <div className={styles.statValue}>{stats.openDemands}</div>
           <div className={styles.statLabel}>Open Demands</div>
         </button>
+
       </div>
     </div>
   );
